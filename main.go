@@ -10,7 +10,10 @@ func main() {
 		SetInputCapture(root.InputCapture()).
 		SetRoot(root, true)
 
-	if err := app.Run(); err != nil {
+	setup := NewSetupPage()
+	root.AddPage("setup", setup)
+
+	if err := app.SetFocus(root).Run(); err != nil {
 		panic(err)
 	}
 }
