@@ -55,15 +55,28 @@ func (p *SetupPage) SetDelegate(delegate SetupDelegate) {
 
 // Save collects all the form data and passes it to the delegate
 func (p *SetupPage) Save() {
-	var data = make(map[string][]string)
+	var data = make(Setup)
 
 	for i := 0; i < p.itemCount; i++ {
 		itemType := p.itemTypeFields[i].GetText()
-		values := strings.Split(p.valuesFields[i].GetText(), ",")
-		for j := 0; j < len(values); j++ {
-			values[j] = strings.Trim(values[j], " ")
+		if len(itemType) == 0 {
+			continue
 		}
-		data[itemType] = values
+
+		values := strings.Split(p.valuesFields[i].GetText(), ",")
+		var trimmedValues []string
+		for _, value := range values {
+			trimmedValue := strings.Trim(value, " ")
+			if len(trimmedValue) == 0 {
+				continue
+			}
+			trimmedValues = append(trimmedValues, trimmedValue)
+		}
+		if len(trimmedValues) == 0 {
+			continue
+		}
+
+		data[itemType] = trimmedValues
 	}
 
 	if p.delegate != nil {
