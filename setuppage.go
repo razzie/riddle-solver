@@ -8,7 +8,7 @@ import (
 )
 
 // SetupDelegate is a function that receives item types and values when the setup is done
-type SetupDelegate func(map[string][]string)
+type SetupDelegate func(Setup)
 
 // SetupPage is a form where the user can input riddle item types and values
 type SetupPage struct {
