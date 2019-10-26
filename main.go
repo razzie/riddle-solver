@@ -18,12 +18,15 @@ func main() {
 	}()
 
 	setup := NewSetupPage()
-	setup.SetSaveDelegate(func(setup Setup) {
+	setup.SetSaveFunc(func(setup Setup) {
 		if err := setup.Check(); err != nil {
 			root.ModalMessage(fmt.Sprint(err))
 		}
 	})
-	root.AddPage("setup", setup)
+	root.AddPage("Setup", setup)
+
+	rules := NewRulesPage()
+	root.AddPage("Rules", rules)
 
 	if err := app.SetFocus(root).Run(); err != nil {
 		panic(err)

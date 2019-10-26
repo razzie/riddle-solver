@@ -10,7 +10,7 @@ import (
 // SetupPage is a form where the user can input riddle item types and values
 type SetupPage struct {
 	*tview.Form
-	delegate       func(Setup)
+	saveFunc       func(Setup)
 	itemCount      int
 	itemTypeFields []*tview.InputField
 	valuesFields   []*tview.InputField
@@ -45,12 +45,12 @@ func (p *SetupPage) addNewItemType() {
 	p.valuesFields = append(p.valuesFields, valuesField)
 }
 
-// SetSaveDelegate sets a delegate that gets called when data is saved
-func (p *SetupPage) SetSaveDelegate(delegate func(Setup)) {
-	p.delegate = delegate
+// SetSaveFunc sets a function that gets called when data is saved
+func (p *SetupPage) SetSaveFunc(saveFunc func(Setup)) {
+	p.saveFunc = saveFunc
 }
 
-// Save collects all the form data and passes it to the delegate
+// Save collects all the form data and passes it to the save function
 func (p *SetupPage) Save() {
 	var data = make(Setup)
 
@@ -76,8 +76,8 @@ func (p *SetupPage) Save() {
 		data[itemType] = trimmedValues
 	}
 
-	if p.delegate != nil {
-		p.delegate(data)
+	if p.saveFunc != nil {
+		p.saveFunc(data)
 	}
 }
 

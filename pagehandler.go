@@ -73,10 +73,10 @@ func (ph *PageHandler) ModalMessage(msg string) {
 }
 
 // ModalYesNo displays a modal dialog with a message and yes/no options
-func (ph *PageHandler) ModalYesNo(msg string, delegate func()) {
+func (ph *PageHandler) ModalYesNo(msg string, yes func()) {
 	ph.modalYesNo.SetText(msg).SetDoneFunc(func(buttonIndex int, buttonLabel string) {
 		if buttonIndex == 0 {
-			delegate()
+			yes()
 		} else {
 			ph.pages.HidePage("modal_yes_no")
 		}
@@ -84,7 +84,7 @@ func (ph *PageHandler) ModalYesNo(msg string, delegate func()) {
 	ph.pages.SendToFront("modal_yes_no").ShowPage("modal_yes_no")
 }
 
-// InputCapture returns a delegate that handles input capture for PageHandler
+// InputCapture returns a function that handles input capture for PageHandler
 func (ph *PageHandler) InputCapture() func(event *tcell.EventKey) *tcell.EventKey {
 	return func(event *tcell.EventKey) *tcell.EventKey {
 		return ph.handleInput(event)
