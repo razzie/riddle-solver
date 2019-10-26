@@ -15,11 +15,14 @@ type SetupPage struct {
 	itemCount      int
 	itemTypeFields []*tview.InputField
 	valuesFields   []*tview.InputField
+	modal          ModalHandler
 }
 
 // NewSetupPage returns a new SetupPage
-func NewSetupPage() *SetupPage {
-	p := &SetupPage{Form: tview.NewForm()}
+func NewSetupPage(modal ModalHandler) *SetupPage {
+	p := &SetupPage{
+		Form:  tview.NewForm(),
+		modal: modal}
 	p.SetLabelColor(tview.Styles.PrimaryTextColor).
 		AddButton("Add item type", func() { p.addNewItemType() }).
 		AddButton("Save / apply", func() { p.Save() }).
@@ -53,11 +56,16 @@ func (p *SetupPage) SetSaveFunc(saveFunc func(solver.Setup)) {
 
 // Save collects all the form data and passes it to the save function
 func (p *SetupPage) Save() {
-	var data = make(solver.Setup)
+	var setup = make(solver.Setup)
 
 	for i := 0; i < p.itemCount; i++ {
 		itemType := p.itemTypeFields[i].GetText()
 		if len(itemType) == 0 {
+			if len(p.valuesFields[i].GetText()) > 0 {
+				p.modal.ModalMessage("Cannot have values without item type")
+				return
+			}
+
 			continue
 		}
 
@@ -74,11 +82,16 @@ func (p *SetupPage) Save() {
 			continue
 		}
 
-		data[itemType] = trimmedValues
+		setup[itemType] = trimmedValues
+	}
+
+	if err := setup.Check(); err != nil {
+		p.modal.ModalMessage(fmt.Sprint(err))
+		return
 	}
 
 	if p.saveFunc != nil {
-		p.saveFunc(data)
+		p.saveFunc(setup)
 	}
 }
 

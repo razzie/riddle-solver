@@ -11,10 +11,11 @@ type RulesPage struct {
 	form     *RuleForm
 	list     *RuleList
 	saveFunc func([]solver.Rule)
+	modal    ModalHandler
 }
 
 // NewRulesPage returns a new RulesPage
-func NewRulesPage() *RulesPage {
+func NewRulesPage(modal ModalHandler) *RulesPage {
 	form := NewRuleForm()
 	list := NewRuleList()
 	grid := tview.NewGrid().
@@ -24,9 +25,10 @@ func NewRulesPage() *RulesPage {
 		AddItem(list, 1, 0, 1, 1, 0, 0, false)
 
 	return &RulesPage{
-		Grid: grid,
-		form: form,
-		list: list}
+		Grid:  grid,
+		form:  form,
+		list:  list,
+		modal: modal}
 }
 
 // Reset resets the form and removes all rules from the list

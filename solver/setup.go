@@ -50,18 +50,18 @@ func (setup Setup) Check() error {
 		itemTypes = append(itemTypes, itemType)
 
 		if hasDuplicates(values) {
-			return fmt.Errorf("item type '%s' has duplicate values", itemType)
+			return fmt.Errorf("Item type '%s' has duplicate values", itemType)
 		}
 
 		if valueCount == 0 {
 			valueCount = len(values)
 		} else if len(values) != valueCount {
-			return fmt.Errorf("all item types should have an equal number of values")
+			return fmt.Errorf("All item types should have an equal number of values")
 		}
 	}
 
 	if hasDuplicates(itemTypes) {
-		return fmt.Errorf("duplicate item types")
+		return fmt.Errorf("Duplicate item types")
 	}
 
 	return nil
