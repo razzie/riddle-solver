@@ -18,7 +18,7 @@ func main() {
 	}()
 
 	setup := NewSetupPage()
-	setup.SetDelegate(func(setup Setup) {
+	setup.SetSaveDelegate(func(setup Setup) {
 		if err := setup.Check(); err != nil {
 			root.ModalMessage(fmt.Sprint(err))
 		}

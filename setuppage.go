@@ -7,13 +7,10 @@ import (
 	"github.com/rivo/tview"
 )
 
-// SetupDelegate is a function that receives item types and values when the setup is done
-type SetupDelegate func(Setup)
-
 // SetupPage is a form where the user can input riddle item types and values
 type SetupPage struct {
 	*tview.Form
-	delegate       SetupDelegate
+	delegate       func(Setup)
 	itemCount      int
 	itemTypeFields []*tview.InputField
 	valuesFields   []*tview.InputField
@@ -48,8 +45,8 @@ func (p *SetupPage) addNewItemType() {
 	p.valuesFields = append(p.valuesFields, valuesField)
 }
 
-// SetDelegate sets the SetupDelegate that gets called when data is saved
-func (p *SetupPage) SetDelegate(delegate SetupDelegate) {
+// SetSaveDelegate sets a delegate that gets called when data is saved
+func (p *SetupPage) SetSaveDelegate(delegate func(Setup)) {
 	p.delegate = delegate
 }
 

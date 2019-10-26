@@ -32,6 +32,15 @@ func (setup Setup) GetItems() []string {
 	return items
 }
 
+// GetItemTypes returns all item types in a slice
+func (setup Setup) GetItemTypes() []string {
+	itemTypes := make([]string, 0, len(setup))
+	for itemType := range setup {
+		itemTypes = append(itemTypes, itemType)
+	}
+	return itemTypes
+}
+
 // Check returns an error if the provided Setup is invalid
 func (setup Setup) Check() error {
 	valueCount := 0
