@@ -1,14 +1,15 @@
-package main
+package ui
 
 import (
+	"github.com/razzie/riddle-solver/solver"
 	"github.com/rivo/tview"
 )
 
 // RuleList is a UI element that contains the list of rules
 type RuleList struct {
 	*tview.List
-	rules    []*Rule
-	saveFunc func([]Rule)
+	rules    []*solver.Rule
+	saveFunc func([]solver.Rule)
 }
 
 // NewRuleList returns a new RuleList
@@ -17,17 +18,17 @@ func NewRuleList() *RuleList {
 }
 
 // HandleSetup filters the list based on the new setup
-func (l *RuleList) HandleSetup(setup Setup) {
+func (l *RuleList) HandleSetup(setup solver.Setup) {
 
 }
 
 // SaveRule adds a new rule to the list or updates an existing one
-func (l *RuleList) SaveRule(rule *Rule) {
+func (l *RuleList) SaveRule(rule *solver.Rule) {
 
 }
 
 // SetSaveFunc sets a function that gets the list of all rules upon an update
-func (l *RuleList) SetSaveFunc(saveFunc func([]Rule)) {
+func (l *RuleList) SetSaveFunc(saveFunc func([]solver.Rule)) {
 	l.saveFunc = saveFunc
 }
 

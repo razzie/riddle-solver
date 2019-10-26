@@ -1,6 +1,7 @@
-package main
+package ui
 
 import (
+	"github.com/razzie/riddle-solver/solver"
 	"github.com/rivo/tview"
 )
 
@@ -9,7 +10,7 @@ type RulesPage struct {
 	*tview.Grid
 	form     *RuleForm
 	list     *RuleList
-	saveFunc func([]Rule)
+	saveFunc func([]solver.Rule)
 }
 
 // NewRulesPage returns a new RulesPage
@@ -34,11 +35,11 @@ func (p *RulesPage) Reset() {
 }
 
 // HandleSetup updates the form and list of rules based on the new setup
-func (p *RulesPage) HandleSetup(setup Setup) {
+func (p *RulesPage) HandleSetup(setup solver.Setup) {
 
 }
 
 // SetSaveFunc sets a function that handles the rules upon an update
-func (p *RulesPage) SetSaveFunc(saveFunc func([]Rule)) {
+func (p *RulesPage) SetSaveFunc(saveFunc func([]solver.Rule)) {
 	p.saveFunc = saveFunc
 }

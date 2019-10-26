@@ -1,4 +1,4 @@
-package main
+package solver
 
 // Relation describes how items affect each other
 type Relation int

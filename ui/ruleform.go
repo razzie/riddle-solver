@@ -1,6 +1,7 @@
-package main
+package ui
 
 import (
+	"github.com/razzie/riddle-solver/solver"
 	"github.com/rivo/tview"
 )
 
@@ -12,8 +13,8 @@ type RuleForm struct {
 	relation          *tview.DropDown
 	conditionItemType *tview.DropDown
 	condition         *tview.InputField
-	rule              *Rule
-	saveFunc          func(*Rule)
+	rule              *solver.Rule
+	saveFunc          func(*solver.Rule)
 }
 
 // NewRuleForm returns a new RuleForm
@@ -55,14 +56,14 @@ func NewRuleForm() *RuleForm {
 }
 
 // HandleSetup configured the autocomplete and dropdown fields
-func (f *RuleForm) HandleSetup(setup Setup) {
+func (f *RuleForm) HandleSetup(setup solver.Setup) {
 
 }
 
 // EditRule sets up the form for editing an existing rule
 // The given pointer will be supplied to the save function later, unless the user
 // resets the form.
-func (f *RuleForm) EditRule(rule *Rule) {
+func (f *RuleForm) EditRule(rule *solver.Rule) {
 
 }
 
@@ -72,7 +73,7 @@ func (f *RuleForm) Save() {
 }
 
 // SetSaveFunc sets a function that gets called on save
-func (f *RuleForm) SetSaveFunc(saveFunc func(*Rule)) {
+func (f *RuleForm) SetSaveFunc(saveFunc func(*solver.Rule)) {
 
 }
 
