@@ -25,12 +25,8 @@ func (rule *Rule) Check(setup Setup) error {
 		return fmt.Errorf("Item A and B cannot be the same")
 	}
 
-	if len(rule.Condition) > 0 {
-		if len(rule.ConditionItemType) == 0 {
-			return fmt.Errorf("Condition item type missing")
-		}
-	} else if rule.Relation == RelUnknown {
-		return fmt.Errorf("Unknown relation must contain condition")
+	if len(rule.Condition) > 0 && len(rule.ConditionItemType) == 0 {
+		return fmt.Errorf("Condition item type missing")
 	}
 
 	items := setup.GetItems()

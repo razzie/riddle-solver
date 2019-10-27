@@ -34,8 +34,8 @@ func NewRuleForm(modal ModalHandler) *RuleForm {
 		SetFieldWidth(30)
 	relation := tview.NewDropDown().
 		SetLabel("Relation").
-		SetOptions([]string{"associated", "disassociated", "unknown"}, nil).
-		SetCurrentOption(2).
+		SetOptions([]string{"associated", "disassociated"}, nil).
+		SetCurrentOption(0).
 		SetFieldWidth(15)
 	condition := tview.NewInputField().
 		SetLabel("Condition (optional)").
@@ -151,7 +151,7 @@ func (f *RuleForm) Reset() {
 	f.rule = nil
 	f.itemA.SetText("")
 	f.itemB.SetText("")
-	f.relation.SetCurrentOption(2)
+	f.relation.SetCurrentOption(0)
 	f.condition.SetText("")
 	f.conditionItemType.SetText("")
 }

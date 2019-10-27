@@ -7,7 +7,6 @@ type Relation int
 const (
 	RelAssociated Relation = iota
 	RelDisassociated
-	RelUnknown
 )
 
 func (rel Relation) String() string {
