@@ -66,9 +66,15 @@ func (l *RuleList) SaveRule(rule *solver.Rule) {
 }
 
 func (l *RuleList) addRule(rule *solver.Rule, index int) {
-	text := fmt.Sprintf("%s - %s - %s", rule.ItemA, rule.ItemB, rule.Relation.String())
+	text := fmt.Sprintf("%s - %s - %s",
+		colorizeItem(rule.ItemA),
+		colorizeItem(rule.ItemB),
+		rule.Relation.String())
+
 	if len(rule.Condition) > 0 {
-		text += fmt.Sprintf(" if [red][ %s ] %s", rule.ConditionItemType, rule.Condition)
+		text += fmt.Sprintf(" if A and B is %s and %s",
+			colorize(rule.ConditionItemType),
+			colorize(rule.Condition))
 	}
 
 	selected := func() {

@@ -23,7 +23,7 @@ type PageHandler struct {
 // NewPageHandler returns a new PageHandler
 func NewPageHandler() *PageHandler {
 	pages := tview.NewPages()
-	footer := tview.NewTextView().SetDynamicColors(true)
+	footer := tview.NewTextView().SetRegions(true)
 	grid := tview.NewGrid().
 		SetRows(0, 1).
 		SetColumns(0).
@@ -120,14 +120,11 @@ func (ph *PageHandler) updateFooter() {
 	var footerText string
 
 	for i, name := range ph.pageNames {
-		if i == ph.activePage {
-			footerText = fmt.Sprintf("%s [[red]F%d %s[white]] ", footerText, i+1, name)
-		} else {
-			footerText = fmt.Sprintf("%s [F%d %s] ", footerText, i+1, name)
-		}
+		footerText += fmt.Sprintf(" [\"%s\"] F%d %s [\"\"] ", name, i+1, name)
 	}
 
-	footerText += " [ESC Quit]"
+	footerText += " ESC Quit"
 
 	ph.footer.SetText(footerText)
+	ph.footer.Highlight(ph.pageNames[ph.activePage])
 }
