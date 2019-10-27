@@ -9,8 +9,8 @@ import (
 
 // PageHandler handles the layout of the application, pages and modal dialogs
 type PageHandler struct {
+	*tview.Grid
 	Quit       chan bool
-	grid       *tview.Grid
 	pages      *tview.Pages
 	footer     *tview.TextView
 	modalMsg   *tview.Modal
@@ -41,8 +41,8 @@ func NewPageHandler() *PageHandler {
 	pages.AddPage("modal_yes_no", modalYesNo, false, false)
 
 	return &PageHandler{
+		Grid:       grid,
 		Quit:       make(chan bool),
-		grid:       grid,
 		pages:      pages,
 		footer:     footer,
 		modalMsg:   modalMsg,
@@ -120,39 +120,4 @@ func (ph *PageHandler) updateFooter() {
 	footerText += " [ESC Quit]"
 
 	ph.footer.SetText(footerText)
-}
-
-// Draw implements tview.Primitive.Draw
-func (ph *PageHandler) Draw(screen tcell.Screen) {
-	ph.grid.Draw(screen)
-}
-
-// GetRect implements tview.Primitive.GetRect
-func (ph *PageHandler) GetRect() (int, int, int, int) {
-	return ph.grid.GetRect()
-}
-
-// SetRect implements tview.Primitive.SetRect
-func (ph *PageHandler) SetRect(x, y, width, height int) {
-	ph.grid.SetRect(x, y, width, height)
-}
-
-// InputHandler implements tview.Primitive.InputHandler
-func (ph *PageHandler) InputHandler() func(event *tcell.EventKey, setFocus func(p tview.Primitive)) {
-	return ph.pages.InputHandler()
-}
-
-// Focus implements tview.Primitive.Focus
-func (ph *PageHandler) Focus(delegate func(p tview.Primitive)) {
-	ph.pages.Focus(delegate)
-}
-
-// Blur implements tview.Primitive.Blur
-func (ph *PageHandler) Blur() {
-	ph.pages.Blur()
-}
-
-// GetFocusable implements tview.Primitive.GetFocusable
-func (ph *PageHandler) GetFocusable() tview.Focusable {
-	return ph.pages.GetFocusable()
 }
