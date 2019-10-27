@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 
+	"github.com/gdamore/tcell"
 	"github.com/razzie/riddle-solver/solver"
 	"github.com/rivo/tview"
 )
@@ -18,14 +19,36 @@ type RuleList struct {
 
 // NewRuleList returns a new RuleList
 func NewRuleList(modal ModalHandler) *RuleList {
-	return &RuleList{
+	l := &RuleList{
 		List:  tview.NewList().ShowSecondaryText(false),
 		modal: modal}
+
+	l.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		return l.handleInput(event)
+	})
+
+	return l
 }
 
 // HandleSetup filters the list based on the new setup
 func (l *RuleList) HandleSetup(setup solver.Setup) {
+	toBeRemoved := make([]int, 0, len(l.rules))
+	removeCount := 0
 
+	for i, rule := range l.rules {
+		if err := rule.Check(setup); err != nil {
+			toBeRemoved = append(toBeRemoved, i)
+		}
+	}
+
+	for _, index := range toBeRemoved {
+		l.removeRule(index-removeCount, false)
+		removeCount++
+	}
+
+	if removeCount > 0 {
+		l.save()
+	}
 }
 
 // SaveRule adds a new rule to the list or updates an existing one
@@ -38,6 +61,7 @@ func (l *RuleList) SaveRule(rule *solver.Rule) {
 		}
 	}
 
+	l.rules = append(l.rules, rule)
 	l.addRule(rule, -1)
 }
 
@@ -54,6 +78,56 @@ func (l *RuleList) addRule(rule *solver.Rule, index int) {
 	}
 
 	l.InsertItem(index, text, "", 0, selected)
+	l.save()
+}
+
+func (l *RuleList) removeRule(index int, save bool) {
+	if len(l.rules) == 0 {
+		return
+	}
+
+	if index < 0 {
+		index = len(l.rules) + index
+	}
+	if index >= len(l.rules) {
+		index = len(l.rules) - 1
+	}
+	if index < 0 {
+		index = 0
+	}
+
+	l.rules = append(l.rules[:index], l.rules[index+1:]...)
+	l.RemoveItem(index)
+
+	if save {
+		l.save()
+	}
+}
+
+func (l *RuleList) save() {
+	if l.saveFunc == nil {
+		return
+	}
+
+	rules := make([]solver.Rule, 0, len(l.rules))
+	for _, rule := range l.rules {
+		rules = append(rules, *rule)
+	}
+
+	l.saveFunc(rules)
+}
+
+func (l *RuleList) handleInput(event *tcell.EventKey) *tcell.EventKey {
+	key := event.Key()
+	if key >= tcell.KeyDelete {
+		remove := func() {
+			l.removeRule(l.GetCurrentItem(), true)
+		}
+		l.modal.ModalYesNo("Do you really want to remove this rule?", remove)
+		return nil
+	}
+
+	return event
 }
 
 // SetEditFunc sets a function that gets called on the selected rule
@@ -68,5 +142,6 @@ func (l *RuleList) SetSaveFunc(saveFunc func([]solver.Rule)) {
 
 // Reset resets the list
 func (l *RuleList) Reset() {
-
+	l.rules = nil
+	l.Clear()
 }
