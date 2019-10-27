@@ -18,13 +18,13 @@ func NewRootElement() *RootElement {
 	root := NewPageHandler()
 
 	setup := NewSetupForm(root)
-	root.AddPage("Setup", setup)
+	root.AddPage("Setup", setup, nil)
 
 	addRule := NewRuleForm(root)
-	root.AddPage("Add rule", addRule)
+	root.AddPage("Add rule", addRule, nil)
 
 	rules := NewRuleList(root)
-	root.AddPage("Rules", tview.NewFrame(rules))
+	root.AddPage("Rules", tview.NewFrame(rules), nil)
 
 	setup.SetSaveFunc(func(setup solver.Setup) {
 		addRule.HandleSetup(setup)

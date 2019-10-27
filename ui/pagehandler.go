@@ -16,6 +16,7 @@ type PageHandler struct {
 	modalMsg   *tview.Modal
 	modalYesNo *tview.Modal
 	pageNames  []string
+	selected   []func()
 	activePage int
 }
 
@@ -50,19 +51,28 @@ func NewPageHandler() *PageHandler {
 }
 
 // AddPage adds a publicly listed page to the frame
-func (ph *PageHandler) AddPage(name string, page tview.Primitive) *PageHandler {
+func (ph *PageHandler) AddPage(name string, page tview.Primitive, selected func()) *PageHandler {
 	ph.pages.AddPage(name, page, true, len(ph.pageNames) == 0)
 	ph.pageNames = append(ph.pageNames, name)
+	ph.selected = append(ph.selected, selected)
 	ph.updateFooter()
 	return ph
 }
 
 // SwitchToPage switches to the page with the number 'page'
 func (ph *PageHandler) SwitchToPage(page int) {
+	if ph.activePage == page {
+		return
+	}
+
 	if page < len(ph.pageNames) {
 		ph.pages.SwitchToPage(ph.pageNames[page])
 		ph.activePage = page
 		ph.updateFooter()
+
+		if ph.selected[page] != nil {
+			ph.selected[page]()
+		}
 	}
 }
 
