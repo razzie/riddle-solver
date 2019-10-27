@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/razzie/riddle-solver/solver"
+	"github.com/razzie/riddle-solver/riddle"
 	"github.com/razzie/riddle-solver/ui"
 )
 
@@ -12,23 +12,23 @@ func SetupDemo(root *ui.RootElement) {
 	}
 
 	hint := func(itemA, itemB string) {
-		root.RuleList.SaveRule(&solver.Rule{
+		root.RuleList.SaveRule(&riddle.Rule{
 			ItemA:    itemA,
 			ItemB:    itemB,
-			Relation: solver.RelAssociated})
+			Relation: riddle.RelAssociated})
 	}
 
 	neighbor := func(itemA, itemB string, cond string) {
-		root.RuleList.SaveRule(&solver.Rule{
+		root.RuleList.SaveRule(&riddle.Rule{
 			ItemA:             itemA,
 			ItemB:             itemB,
-			Relation:          solver.RelAssociated,
+			Relation:          riddle.RelAssociated,
 			ConditionItemType: "house",
 			Condition:         cond})
-		root.RuleList.SaveRule(&solver.Rule{
+		root.RuleList.SaveRule(&riddle.Rule{
 			ItemA:    itemA,
 			ItemB:    itemB,
-			Relation: solver.RelDisassociated})
+			Relation: riddle.RelDisassociated})
 	}
 
 	items("house", "1", "2", "3", "4", "5")

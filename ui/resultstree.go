@@ -1,7 +1,7 @@
 package ui
 
 import (
-	"github.com/razzie/riddle-solver/solver"
+	"github.com/razzie/riddle-solver/riddle"
 	"github.com/rivo/tview"
 )
 
@@ -9,8 +9,8 @@ import (
 type ResultsTree struct {
 	*tview.TreeView
 	root  *tview.TreeNode
-	setup solver.Setup
-	rules []solver.Rule
+	setup riddle.Setup
+	rules []riddle.Rule
 	dirty bool
 }
 
@@ -21,11 +21,9 @@ func NewResultsTree() *ResultsTree {
 		SetRoot(root).
 		SetCurrentNode(root)
 
-	t := &ResultsTree{
+	return &ResultsTree{
 		TreeView: tree,
 		root:     root}
-	t.root.SetSelectedFunc(func() { t.Update() })
-	return t
 }
 
 // Update updates the results based on the latest setup and rules
@@ -38,12 +36,12 @@ func (t *ResultsTree) Update() {
 }
 
 // HandleSetup updates the inner stored setup
-func (t *ResultsTree) HandleSetup(setup solver.Setup) {
+func (t *ResultsTree) HandleSetup(setup riddle.Setup) {
 	t.setup = setup
 }
 
 // HandleRules updates the inner stored rules
-func (t *ResultsTree) HandleRules(rules []solver.Rule) {
+func (t *ResultsTree) HandleRules(rules []riddle.Rule) {
 	t.rules = rules
 	t.dirty = true
 }

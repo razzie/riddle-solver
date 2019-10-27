@@ -1,4 +1,4 @@
-package solver
+package riddle
 
 import (
 	"fmt"

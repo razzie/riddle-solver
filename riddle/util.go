@@ -1,4 +1,4 @@
-package solver
+package riddle
 
 func hasDuplicates(items []string) bool {
 	count := len(items)

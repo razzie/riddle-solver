@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/razzie/riddle-solver/solver"
+	"github.com/razzie/riddle-solver/riddle"
 	"github.com/rivo/tview"
 )
 
 // SetupForm is a form where the user can input riddle item types and values
 type SetupForm struct {
 	*tview.Form
-	saveFunc       func(solver.Setup)
+	saveFunc       func(riddle.Setup)
 	itemCount      int
 	itemTypeFields []*tview.InputField
 	valuesFields   []*tview.InputField
@@ -65,13 +65,13 @@ func (f *SetupForm) AddItemType(itemType string, values ...string) {
 }
 
 // SetSaveFunc sets a function that gets called when data is saved
-func (f *SetupForm) SetSaveFunc(saveFunc func(solver.Setup)) {
+func (f *SetupForm) SetSaveFunc(saveFunc func(riddle.Setup)) {
 	f.saveFunc = saveFunc
 }
 
 // Save collects all the form data and passes it to the save function
 func (f *SetupForm) Save() {
-	var setup = make(solver.Setup)
+	var setup = make(riddle.Setup)
 
 	for i := 0; i < f.itemCount; i++ {
 		itemType := f.itemTypeFields[i].GetText()

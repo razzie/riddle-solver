@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/razzie/riddle-solver/solver"
+	"github.com/razzie/riddle-solver/riddle"
 	"github.com/rivo/tview"
 )
 
@@ -16,9 +16,9 @@ type RuleForm struct {
 	relation          *tview.DropDown
 	condition         *tview.InputField
 	conditionItemType *tview.InputField
-	rule              *solver.Rule
-	setup             solver.Setup
-	saveFunc          func(*solver.Rule)
+	rule              *riddle.Rule
+	setup             riddle.Setup
+	saveFunc          func(*riddle.Rule)
 	modal             ModalHandler
 }
 
@@ -88,7 +88,7 @@ func getAutocompleteFunc(words []string) func(string) []string {
 }
 
 // HandleSetup configured the autocomplete and dropdown fields
-func (f *RuleForm) HandleSetup(setup solver.Setup) {
+func (f *RuleForm) HandleSetup(setup riddle.Setup) {
 	f.Reset()
 	f.setup = setup
 	autocompleteItems := getAutocompleteFunc(setup.GetItems())
@@ -101,7 +101,7 @@ func (f *RuleForm) HandleSetup(setup solver.Setup) {
 // EditRule sets up the form for editing an existing rule
 // The given pointer will be supplied to the save function later, unless the user
 // resets the form.
-func (f *RuleForm) EditRule(rule *solver.Rule) {
+func (f *RuleForm) EditRule(rule *riddle.Rule) {
 	f.rule = rule
 	f.itemA.SetText(rule.ItemA)
 	f.itemB.SetText(rule.ItemB)
@@ -112,11 +112,11 @@ func (f *RuleForm) EditRule(rule *solver.Rule) {
 
 // Save calls the save function on the currently edited or new rule
 func (f *RuleForm) Save() {
-	var rule solver.Rule
+	var rule riddle.Rule
 	rule.ItemA = f.itemA.GetText()
 	rule.ItemB = f.itemB.GetText()
 	relation, _ := f.relation.GetCurrentOption()
-	rule.Relation = solver.Relation(relation)
+	rule.Relation = riddle.Relation(relation)
 	rule.Condition = f.condition.GetText()
 	rule.ConditionItemType = f.conditionItemType.GetText()
 
@@ -142,7 +142,7 @@ func (f *RuleForm) Save() {
 }
 
 // SetSaveFunc sets a function that gets called on save
-func (f *RuleForm) SetSaveFunc(saveFunc func(*solver.Rule)) {
+func (f *RuleForm) SetSaveFunc(saveFunc func(*riddle.Rule)) {
 	f.saveFunc = saveFunc
 }
 

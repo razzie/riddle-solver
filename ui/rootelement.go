@@ -1,7 +1,7 @@
 package ui
 
 import (
-	"github.com/razzie/riddle-solver/solver"
+	"github.com/razzie/riddle-solver/riddle"
 	"github.com/rivo/tview"
 )
 
@@ -29,21 +29,21 @@ func NewRootElement() *RootElement {
 	results := NewResultsTree()
 	root.AddPage("Results", tview.NewFrame(results), func() { results.Update() })
 
-	setup.SetSaveFunc(func(setup solver.Setup) {
+	setup.SetSaveFunc(func(setup riddle.Setup) {
 		addRule.HandleSetup(setup)
 		rules.HandleSetup(setup)
 		results.HandleSetup(setup)
 		root.SwitchToPage(1)
 	})
-	addRule.SetSaveFunc(func(rule *solver.Rule) {
+	addRule.SetSaveFunc(func(rule *riddle.Rule) {
 		rules.SaveRule(rule)
 		root.ModalMessage("Saved")
 	})
-	rules.SetEditFunc(func(rule *solver.Rule) {
+	rules.SetEditFunc(func(rule *riddle.Rule) {
 		addRule.EditRule(rule)
 		root.SwitchToPage(1)
 	})
-	rules.SetSaveFunc(func(rules []solver.Rule) {
+	rules.SetSaveFunc(func(rules []riddle.Rule) {
 		results.HandleRules(rules)
 	})
 

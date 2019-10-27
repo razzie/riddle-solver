@@ -4,16 +4,16 @@ import (
 	"fmt"
 
 	"github.com/gdamore/tcell"
-	"github.com/razzie/riddle-solver/solver"
+	"github.com/razzie/riddle-solver/riddle"
 	"github.com/rivo/tview"
 )
 
 // RuleList is a UI element that contains the list of rules
 type RuleList struct {
 	*tview.List
-	rules    []*solver.Rule
-	editFunc func(*solver.Rule)
-	saveFunc func([]solver.Rule)
+	rules    []*riddle.Rule
+	editFunc func(*riddle.Rule)
+	saveFunc func([]riddle.Rule)
 	modal    ModalHandler
 }
 
@@ -31,7 +31,7 @@ func NewRuleList(modal ModalHandler) *RuleList {
 }
 
 // HandleSetup filters the list based on the new setup
-func (l *RuleList) HandleSetup(setup solver.Setup) {
+func (l *RuleList) HandleSetup(setup riddle.Setup) {
 	toBeRemoved := make([]int, 0, len(l.rules))
 	removeCount := 0
 
@@ -52,7 +52,7 @@ func (l *RuleList) HandleSetup(setup solver.Setup) {
 }
 
 // SaveRule adds a new rule to the list or updates an existing one
-func (l *RuleList) SaveRule(rule *solver.Rule) {
+func (l *RuleList) SaveRule(rule *riddle.Rule) {
 	for i, r := range l.rules {
 		if r == rule {
 			l.RemoveItem(i)
@@ -65,7 +65,7 @@ func (l *RuleList) SaveRule(rule *solver.Rule) {
 	l.addRule(rule, -1)
 }
 
-func (l *RuleList) addRule(rule *solver.Rule, index int) {
+func (l *RuleList) addRule(rule *riddle.Rule, index int) {
 	text := fmt.Sprintf("%s - %s - %s",
 		colorizeItem(rule.ItemA),
 		colorizeItem(rule.ItemB),
@@ -115,7 +115,7 @@ func (l *RuleList) save() {
 		return
 	}
 
-	rules := make([]solver.Rule, 0, len(l.rules))
+	rules := make([]riddle.Rule, 0, len(l.rules))
 	for _, rule := range l.rules {
 		rules = append(rules, *rule)
 	}
@@ -137,12 +137,12 @@ func (l *RuleList) handleInput(event *tcell.EventKey) *tcell.EventKey {
 }
 
 // SetEditFunc sets a function that gets called on the selected rule
-func (l *RuleList) SetEditFunc(editFunc func(*solver.Rule)) {
+func (l *RuleList) SetEditFunc(editFunc func(*riddle.Rule)) {
 	l.editFunc = editFunc
 }
 
 // SetSaveFunc sets a function that gets the list of all rules upon an update
-func (l *RuleList) SetSaveFunc(saveFunc func([]solver.Rule)) {
+func (l *RuleList) SetSaveFunc(saveFunc func([]riddle.Rule)) {
 	l.saveFunc = saveFunc
 }
 

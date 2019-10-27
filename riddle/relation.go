@@ -1,4 +1,4 @@
-package solver
+package riddle
 
 // Relation describes how items affect each other
 type Relation int
