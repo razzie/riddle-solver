@@ -24,14 +24,14 @@ func NewSetupForm(modal ModalHandler) *SetupForm {
 		Form:  tview.NewForm(),
 		modal: modal}
 	f.SetLabelColor(tview.Styles.PrimaryTextColor).
-		AddButton("Add item type", func() { f.addNewItemType() }).
+		AddButton("Add item type", func() { f.addItemTypeField() }).
 		AddButton("Save / apply", func() { f.Save() }).
 		AddButton("Reset", func() { f.Reset() })
 	f.Reset()
 	return f
 }
 
-func (f *SetupForm) addNewItemType() {
+func (f *SetupForm) addItemTypeField() {
 	f.itemCount++
 
 	itemTypeField := tview.NewInputField().
@@ -47,6 +47,21 @@ func (f *SetupForm) addNewItemType() {
 		SetFieldWidth(40)
 	f.AddFormItem(valuesField)
 	f.valuesFields = append(f.valuesFields, valuesField)
+}
+
+// AddItemType adds a new item type field with the provided values or uses an existing empty one
+func (f *SetupForm) AddItemType(itemType string, values ...string) {
+	for i := 0; i < f.itemCount; i++ {
+		if len(f.itemTypeFields[i].GetText()) == 0 && len(f.valuesFields[i].GetText()) == 0 {
+			f.itemTypeFields[i].SetText(itemType)
+			f.valuesFields[i].SetText(strings.Join(values, ", "))
+			return
+		}
+	}
+
+	f.addItemTypeField()
+	f.itemTypeFields[f.itemCount-1].SetText(itemType)
+	f.valuesFields[f.itemCount-1].SetText(strings.Join(values, ", "))
 }
 
 // SetSaveFunc sets a function that gets called when data is saved
@@ -101,6 +116,10 @@ func (f *SetupForm) Reset() {
 	f.Clear(false)
 	f.itemTypeFields = nil
 	f.valuesFields = nil
-	f.addNewItemType()
-	f.addNewItemType()
+	f.addItemTypeField()
+	f.addItemTypeField()
+
+	if f.saveFunc != nil {
+		f.saveFunc(nil)
+	}
 }

@@ -19,7 +19,7 @@ type RuleList struct {
 // NewRuleList returns a new RuleList
 func NewRuleList(modal ModalHandler) *RuleList {
 	return &RuleList{
-		List:  tview.NewList(),
+		List:  tview.NewList().ShowSecondaryText(false),
 		modal: modal}
 }
 
@@ -43,18 +43,17 @@ func (l *RuleList) SaveRule(rule *solver.Rule) {
 
 func (l *RuleList) addRule(rule *solver.Rule, index int) {
 	text := fmt.Sprintf("%s - %s - %s", rule.ItemA, rule.ItemB, rule.Relation.String())
+	if len(rule.Condition) > 0 {
+		text += fmt.Sprintf(" [red][ %s ] %s", rule.ConditionItemType, rule.Condition)
+	}
+
 	selected := func() {
 		if l.editFunc != nil {
 			l.editFunc(rule)
 		}
 	}
 
-	if len(rule.Condition) > 0 {
-		secondaryText := fmt.Sprintf("[ %s ] %s", rule.ConditionItemType, rule.Condition)
-		l.InsertItem(index, text, secondaryText, 0, selected)
-	} else {
-		l.InsertItem(index, text, "", 0, selected)
-	}
+	l.InsertItem(index, text, "", 0, selected)
 }
 
 // SetEditFunc sets a function that gets called on the selected rule

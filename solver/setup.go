@@ -27,6 +27,15 @@ func (setup Setup) GetItemTypes() []string {
 	return itemTypes
 }
 
+// GetItemCountPerType returns the number of possible values under an item type
+func (setup Setup) GetItemCountPerType() int {
+	for _, values := range setup {
+		return len(values)
+	}
+
+	return 0
+}
+
 // Check returns an error if the provided Setup is invalid
 func (setup Setup) Check() error {
 	valueCount := 0
