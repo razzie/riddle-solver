@@ -7,7 +7,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-// PageHandler is the root UI element of the application
+// PageHandler handles the layout of the application, pages and modal dialogs
 type PageHandler struct {
 	Quit       chan bool
 	grid       *tview.Grid
