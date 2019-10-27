@@ -7,20 +7,6 @@ import (
 // Setup is a map of riddle item types and their possible values
 type Setup map[string][]string
 
-func hasDuplicates(values []string) bool {
-	count := len(values)
-	for i := 0; i < count-1; i++ {
-		val := values[i]
-		for j := i + 1; j < count; j++ {
-			if values[j] == val {
-				return true
-			}
-		}
-	}
-
-	return false
-}
-
 // GetItems returns all items in a slice in itemType:value format
 func (setup Setup) GetItems() []string {
 	var items []string
