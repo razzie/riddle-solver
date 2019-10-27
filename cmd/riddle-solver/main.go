@@ -17,13 +17,26 @@ func main() {
 		app.Stop()
 	}()
 
-	setup := ui.NewSetupPage(root)
+	setup := ui.NewSetupForm(root)
 	root.AddPage("Setup", setup)
 
-	rules := ui.NewRulesPage(root)
-	root.AddPage("Rules", rules)
+	addRule := ui.NewRuleForm(root)
+	root.AddPage("Add rule", addRule)
+
+	rules := ui.NewRuleList(root)
+	root.AddPage("Rules", tview.NewFrame(rules))
+
 	setup.SetSaveFunc(func(setup solver.Setup) {
+		addRule.HandleSetup(setup)
 		rules.HandleSetup(setup)
+		root.SwitchToPage(1)
+	})
+	addRule.SetSaveFunc(func(rule *solver.Rule) {
+		rules.SaveRule(rule)
+		root.ModalMessage("Saved")
+	})
+	rules.SetEditFunc(func(rule *solver.Rule) {
+		addRule.EditRule(rule)
 		root.SwitchToPage(1)
 	})
 

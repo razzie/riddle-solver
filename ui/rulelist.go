@@ -50,10 +50,10 @@ func (l *RuleList) addRule(rule *solver.Rule, index int) {
 	}
 
 	if len(rule.Condition) > 0 {
-		l.InsertItem(index, text, "", 0, selected)
-	} else {
-		secondaryText := fmt.Sprintf("[%s] %s", rule.ConditionItemType, rule.Condition)
+		secondaryText := fmt.Sprintf("[ %s ] %s", rule.ConditionItemType, rule.Condition)
 		l.InsertItem(index, text, secondaryText, 0, selected)
+	} else {
+		l.InsertItem(index, text, "", 0, selected)
 	}
 }
 
