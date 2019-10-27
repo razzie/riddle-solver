@@ -77,9 +77,8 @@ func (ph *PageHandler) ModalYesNo(msg string, yes func()) {
 	ph.modalYesNo.SetText(msg).SetDoneFunc(func(buttonIndex int, buttonLabel string) {
 		if buttonIndex == 0 {
 			yes()
-		} else {
-			ph.pages.HidePage("modal_yes_no")
 		}
+		ph.pages.HidePage("modal_yes_no")
 	})
 	ph.pages.SendToFront("modal_yes_no").ShowPage("modal_yes_no")
 }
