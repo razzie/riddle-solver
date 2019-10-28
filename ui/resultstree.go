@@ -1,6 +1,9 @@
 package ui
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/razzie/riddle-solver/riddle"
 	"github.com/rivo/tview"
 )
@@ -23,7 +26,8 @@ func NewResultsTree() *ResultsTree {
 
 	return &ResultsTree{
 		TreeView: tree,
-		root:     root}
+		root:     root,
+		dirty:    true}
 }
 
 // Update updates the results based on the latest setup and rules
@@ -32,7 +36,45 @@ func (t *ResultsTree) Update() {
 		return
 	}
 
+	solver := riddle.NewSolver(t.setup)
+	solver.ApplyRules(t.rules)
+
 	t.dirty = false
+	t.root.ClearChildren()
+
+	for itemType, values := range t.setup {
+		itemTypeNode := tview.NewTreeNode(itemType)
+		for _, val := range values {
+			item := riddle.Item(fmt.Sprintf("%s:%s", itemType, val))
+			valueNode := tview.NewTreeNode(val).SetReference(item)
+			itemTypeNode.AddChild(valueNode)
+		}
+		t.root.AddChild(itemTypeNode)
+	}
+
+	t.SetSelectedFunc(func(node *tview.TreeNode) {
+		children := node.GetChildren()
+		if len(children) == 0 {
+			reference := node.GetReference()
+			if reference == nil {
+				return
+			}
+
+			item := reference.(riddle.Item)
+			result := solver.FindAssociatedItems(item)
+			for itemType, values := range result {
+				for i, val := range values {
+					values[i] = colorize(val)
+				}
+				text := fmt.Sprintf("[-]%s: %s", itemType, strings.Join(values, "[-], "))
+				resultNode := tview.NewTreeNode(text)
+				node.AddChild(resultNode)
+			}
+
+		} else {
+			node.SetExpanded(!node.IsExpanded())
+		}
+	})
 }
 
 // HandleSetup updates the inner stored setup

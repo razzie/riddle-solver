@@ -62,6 +62,7 @@ func (f *SetupForm) AddItemType(itemType string, values ...string) {
 	f.addItemTypeField()
 	f.itemTypeFields[f.itemCount-1].SetText(itemType)
 	f.valuesFields[f.itemCount-1].SetText(strings.Join(values, ", "))
+	f.Save()
 }
 
 // SetSaveFunc sets a function that gets called when data is saved
