@@ -14,7 +14,7 @@ type RootElement struct {
 }
 
 // NewRootElement returns a new RootElement
-func NewRootElement() *RootElement {
+func NewRootElement(debug bool) *RootElement {
 	root := NewPageHandler()
 
 	setup := NewSetupForm(root)
@@ -29,10 +29,16 @@ func NewRootElement() *RootElement {
 	results := NewResultsTree()
 	root.AddPage("Results", tview.NewFrame(results), func() { results.Update() })
 
+	solverdebug := NewSolverDebugTree()
+	if debug {
+		root.AddPage("Debug", tview.NewFrame(solverdebug), func() { solverdebug.Update() })
+	}
+
 	setup.SetSaveFunc(func(setup riddle.Setup) {
 		addRule.HandleSetup(setup)
 		rules.HandleSetup(setup)
 		results.HandleSetup(setup)
+		solverdebug.HandleSetup(setup)
 		if setup != nil {
 			root.SwitchToPage(1)
 		}
@@ -47,6 +53,7 @@ func NewRootElement() *RootElement {
 	})
 	rules.SetSaveFunc(func(rules []riddle.Rule) {
 		results.HandleRules(rules)
+		solverdebug.HandleRules(rules)
 	})
 
 	return &RootElement{
