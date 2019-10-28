@@ -33,7 +33,9 @@ func NewRootElement() *RootElement {
 		addRule.HandleSetup(setup)
 		rules.HandleSetup(setup)
 		results.HandleSetup(setup)
-		root.SwitchToPage(1)
+		if setup != nil {
+			root.SwitchToPage(1)
+		}
 	})
 	addRule.SetSaveFunc(func(rule *riddle.Rule) {
 		rules.SaveRule(rule)
