@@ -68,4 +68,6 @@ func SetupDemo(root *ui.RootElement) {
 	neighbor("nationality:norwegian", "color:blue", "(A == B - 1) || (A == B + 1)")
 	// the man who smokes blend has a neighbor who drinks water
 	neighbor("cigar:blends", "beverage:water", "(A == B - 1) || (A == B + 1)")
+
+	root.SwitchToPage(2)
 }
