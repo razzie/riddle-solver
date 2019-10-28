@@ -103,8 +103,8 @@ func (f *RuleForm) HandleSetup(setup riddle.Setup) {
 // resets the form.
 func (f *RuleForm) EditRule(rule *riddle.Rule) {
 	f.rule = rule
-	f.itemA.SetText(rule.ItemA)
-	f.itemB.SetText(rule.ItemB)
+	f.itemA.SetText(string(rule.ItemA))
+	f.itemB.SetText(string(rule.ItemB))
 	f.relation.SetCurrentOption(int(rule.Relation))
 	f.condition.SetText(rule.Condition)
 	f.conditionItemType.SetText(rule.ConditionItemType)
@@ -113,8 +113,8 @@ func (f *RuleForm) EditRule(rule *riddle.Rule) {
 // Save calls the save function on the currently edited or new rule
 func (f *RuleForm) Save() {
 	var rule riddle.Rule
-	rule.ItemA = f.itemA.GetText()
-	rule.ItemB = f.itemB.GetText()
+	rule.ItemA = riddle.Item(f.itemA.GetText())
+	rule.ItemB = riddle.Item(f.itemB.GetText())
 	relation, _ := f.relation.GetCurrentOption()
 	rule.Relation = riddle.Relation(relation)
 	rule.Condition = f.condition.GetText()

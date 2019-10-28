@@ -13,21 +13,21 @@ func SetupDemo(root *ui.RootElement) {
 
 	hint := func(itemA, itemB string) {
 		root.RuleList.SaveRule(&riddle.Rule{
-			ItemA:    itemA,
-			ItemB:    itemB,
+			ItemA:    riddle.Item(itemA),
+			ItemB:    riddle.Item(itemB),
 			Relation: riddle.RelAssociated})
 	}
 
 	neighbor := func(itemA, itemB string, cond string) {
 		root.RuleList.SaveRule(&riddle.Rule{
-			ItemA:             itemA,
-			ItemB:             itemB,
+			ItemA:             riddle.Item(itemA),
+			ItemB:             riddle.Item(itemB),
 			Relation:          riddle.RelAssociated,
 			ConditionItemType: "house",
 			Condition:         cond})
 		root.RuleList.SaveRule(&riddle.Rule{
-			ItemA:    itemA,
-			ItemB:    itemB,
+			ItemA:    riddle.Item(itemA),
+			ItemB:    riddle.Item(itemB),
 			Relation: riddle.RelDisassociated})
 	}
 

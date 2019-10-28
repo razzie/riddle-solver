@@ -2,8 +2,8 @@ package ui
 
 import (
 	"fmt"
-	"strings"
 
+	"github.com/razzie/riddle-solver/riddle"
 	"github.com/rivo/tview"
 )
 
@@ -13,7 +13,7 @@ func colorize(text string) string {
 	return fmt.Sprintf("[#%06x]%s[#%06x]", secondaryColor, text, primaryColor)
 }
 
-func colorizeItem(item string) string {
-	parts := strings.SplitN(item, ":", 2)
-	return fmt.Sprintf("%s:%s", parts[0], colorize(parts[1]))
+func colorizeItem(item riddle.Item) string {
+	itemType, value := item.Split()
+	return fmt.Sprintf("%s:%s", itemType, colorize(value))
 }

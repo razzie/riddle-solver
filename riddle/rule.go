@@ -6,8 +6,8 @@ import (
 
 // Rule is used by the riddle solver algorithm
 type Rule struct {
-	ItemA             string
-	ItemB             string
+	ItemA             Item
+	ItemB             Item
 	Relation          Relation
 	Condition         string
 	ConditionItemType string
@@ -30,10 +30,10 @@ func (rule *Rule) Check(setup Setup) error {
 	}
 
 	items := setup.GetItems()
-	if !contains(items, rule.ItemA) {
+	if !contains(items, string(rule.ItemA)) {
 		return fmt.Errorf("Item A is invalid")
 	}
-	if !contains(items, rule.ItemB) {
+	if !contains(items, string(rule.ItemB)) {
 		return fmt.Errorf("Item B is invalid")
 	}
 
