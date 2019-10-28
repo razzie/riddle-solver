@@ -9,8 +9,19 @@ type Solver struct {
 func NewSolver(setup Setup) *Solver {
 	entryCount := setup.GetItemCountPerType()
 	entries := make([]SolverEntry, 0, entryCount)
+	var primaryItemType string
+	var primaryItemTypeValues []string
+
+	for itemType, values := range setup {
+		primaryItemType = itemType
+		primaryItemTypeValues = values
+		break
+	}
+
 	for i := 0; i < entryCount; i++ {
-		entries = append(entries, NewSolverEntry(setup))
+		entry := NewSolverEntry(setup)
+		entry[primaryItemType] = []string{primaryItemTypeValues[i]}
+		entries = append(entries, entry)
 	}
 
 	return &Solver{Entries: entries}
@@ -18,7 +29,24 @@ func NewSolver(setup Setup) *Solver {
 
 // ApplyRules applies the provided rules to reduce the item variations as much as possible
 func (solver *Solver) ApplyRules(rules []Rule) {
+	simpleRules, conditionalRules := SplitRules(rules)
 
+	// looping until no rules make any change
+	for changed := true; changed; changed = false {
+		for i, entry := range solver.Entries {
+			// applying simple rules
+			for _, rule := range simpleRules {
+				changed = changed || rule.ApplySimple(entry)
+			}
+			// running all variations of entryA and entryB
+			for j := i; j < len(solver.Entries); j++ {
+				// applying conditional rules
+				for _, rule := range conditionalRules {
+					changed = changed || rule.ApplyConditional(entry, solver.Entries[j])
+				}
+			}
+		}
+	}
 }
 
 // FindEntriesWithItem returns the entries that contain the specified item

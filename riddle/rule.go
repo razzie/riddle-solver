@@ -29,11 +29,10 @@ func (rule *Rule) Check(setup Setup) error {
 		return fmt.Errorf("Condition item type missing")
 	}
 
-	items := setup.GetItems()
-	if !contains(items, string(rule.ItemA)) {
+	if !setup.Contains(rule.ItemA) {
 		return fmt.Errorf("Item A is invalid")
 	}
-	if !contains(items, string(rule.ItemB)) {
+	if !setup.Contains(rule.ItemB) {
 		return fmt.Errorf("Item B is invalid")
 	}
 
@@ -45,4 +44,50 @@ func (rule *Rule) Check(setup Setup) error {
 	}
 
 	return nil
+}
+
+// ApplySimple tries to apply a simple (non-conditional) rule to a SolverEntry
+func (rule *Rule) ApplySimple(entry SolverEntry) bool {
+	switch rule.Relation {
+	case RelAssociated:
+		if entry.OnlyContains(rule.ItemA) {
+			return entry.Set(rule.ItemB)
+		}
+		if entry.OnlyContains(rule.ItemB) {
+			return entry.Set(rule.ItemA)
+		}
+		if !entry.Contains(rule.ItemA) {
+			return entry.Unset(rule.ItemB)
+		}
+		if !entry.Contains(rule.ItemB) {
+			return entry.Unset(rule.ItemA)
+		}
+
+	case RelDisassociated:
+		if entry.OnlyContains(rule.ItemA) {
+			return entry.Unset(rule.ItemB)
+		}
+		if entry.OnlyContains(rule.ItemB) {
+			return entry.Unset(rule.ItemA)
+		}
+	}
+
+	return false
+}
+
+// ApplyConditional tries to apply a conditional rule to a SolverEntry
+func (rule *Rule) ApplyConditional(entryA, entryB SolverEntry) bool {
+	return false
+}
+
+// SplitRules splits a slice of rules to slices of simple and conditional rules
+func SplitRules(rules []Rule) (simple []Rule, conditional []Rule) {
+	for _, rule := range rules {
+		if len(rule.Condition) > 0 {
+			conditional = append(conditional, rule)
+		} else {
+			simple = append(simple, rule)
+		}
+	}
+	return
 }

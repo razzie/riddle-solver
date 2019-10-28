@@ -8,11 +8,10 @@ import (
 type Setup map[string][]string
 
 // GetItems returns all items in a slice in itemType:value format
-func (setup Setup) GetItems() []string {
-	var items []string
+func (setup Setup) GetItems() (items []Item) {
 	for itemType, values := range setup {
 		for _, val := range values {
-			items = append(items, fmt.Sprintf("%s:%s", itemType, val))
+			items = append(items, Item(fmt.Sprintf("%s:%s", itemType, val)))
 		}
 	}
 	return items
@@ -34,6 +33,13 @@ func (setup Setup) GetItemCountPerType() int {
 	}
 
 	return 0
+}
+
+// Contains returns whether the setup contains the specified item
+func (setup Setup) Contains(item Item) bool {
+	itemType, value := item.Split()
+	values, _ := setup[itemType]
+	return contains(values, value)
 }
 
 // Check returns an error if the provided Setup is invalid

@@ -2,7 +2,6 @@ package ui
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/razzie/riddle-solver/riddle"
 	"github.com/rivo/tview"
@@ -67,31 +66,11 @@ func NewRuleForm(modal ModalHandler) *RuleForm {
 	return f
 }
 
-func getAutocompleteFunc(words []string) func(string) []string {
-	return func(currentText string) (results []string) {
-		if len(currentText) == 0 {
-			return
-		}
-
-		for _, word := range words {
-			if strings.HasPrefix(strings.ToLower(word), strings.ToLower(currentText)) {
-				results = append(results, word)
-			}
-		}
-
-		if len(results) <= 1 {
-			results = nil
-		}
-
-		return
-	}
-}
-
 // HandleSetup configured the autocomplete and dropdown fields
 func (f *RuleForm) HandleSetup(setup riddle.Setup) {
 	f.Reset()
 	f.setup = setup
-	autocompleteItems := getAutocompleteFunc(setup.GetItems())
+	autocompleteItems := getAutocompleteItemsFunc(setup.GetItems())
 	autocompleteItemTypes := getAutocompleteFunc(setup.GetItemTypes())
 	f.itemA.SetAutocompleteFunc(autocompleteItems)
 	f.itemB.SetAutocompleteFunc(autocompleteItems)

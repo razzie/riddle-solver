@@ -43,7 +43,7 @@ func (t *ResultsTree) Update() {
 	t.root.ClearChildren()
 
 	for itemType, values := range t.setup {
-		itemTypeNode := tview.NewTreeNode(itemType)
+		itemTypeNode := tview.NewTreeNode(itemType).SetExpanded(false)
 		for _, val := range values {
 			item := riddle.Item(fmt.Sprintf("%s:%s", itemType, val))
 			valueNode := tview.NewTreeNode(val).SetReference(item)
