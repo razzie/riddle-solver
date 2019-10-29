@@ -11,6 +11,11 @@ type Riddle struct {
 	Rules []Rule
 }
 
+// NewRiddle returns a new Riddle
+func NewRiddle() *Riddle {
+	return &Riddle{Setup: make(Setup)}
+}
+
 // LoadRiddle loads the riddle from a byte slice in JSON format
 func LoadRiddle(data []byte) (*Riddle, error) {
 	var r Riddle

@@ -19,7 +19,7 @@ func main() {
 		SetRoot(root, true)
 
 	if *demo {
-		SetupDemo(root)
+		root.SetRiddle(NewDemo().Riddle)
 	} else {
 		r, err := riddle.LoadRiddleFromFile("riddle.json")
 		if err == nil {
