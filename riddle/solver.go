@@ -36,13 +36,13 @@ func (solver *Solver) ApplyRules(rules []Rule) {
 		for i, entry := range solver.Entries {
 			// applying simple rules
 			for _, rule := range simpleRules {
-				changed = changed || rule.ApplySimple(entry)
+				changed = rule.ApplySimple(entry) || changed
 			}
 			// running all variations of entryA and entryB
 			for j := i; j < len(solver.Entries); j++ {
 				// applying conditional rules
 				for _, rule := range conditionalRules {
-					changed = changed || rule.ApplyConditional(entry, solver.Entries[j])
+					changed = rule.ApplyConditional(entry, solver.Entries[j]) || changed
 				}
 			}
 		}
