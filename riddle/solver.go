@@ -3,50 +3,55 @@ package riddle
 // Solver can solve a riddle based on the setup and rules
 type Solver struct {
 	Entries []SolverEntry
+	setup   Setup
 }
 
 // NewSolver returns a new Solver
 func NewSolver(setup Setup) *Solver {
 	entryCount := setup.GetItemCountPerType()
 	entries := make([]SolverEntry, 0, entryCount)
-	var primaryItemType string
-	var primaryItemTypeValues []string
-
-	for itemType, values := range setup {
-		primaryItemType = itemType
-		primaryItemTypeValues = values
-		break
-	}
 
 	for i := 0; i < entryCount; i++ {
 		entry := NewSolverEntry(setup)
-		entry[primaryItemType] = []string{primaryItemTypeValues[i]}
 		entries = append(entries, entry)
 	}
 
-	return &Solver{Entries: entries}
+	return &Solver{
+		Entries: entries,
+		setup:   setup}
 }
 
 // ApplyRules applies the provided rules to reduce the item variations as much as possible
-func (solver *Solver) ApplyRules(rules []Rule) {
+func (solver *Solver) ApplyRules(rules []Rule) (steps int) {
+	if len(rules) == 0 {
+		return
+	}
+
+	primaryItemType, _ := rules[0].ItemA.Split()
+	primaryItemTypeValues, _ := solver.setup[primaryItemType]
+	for i, entry := range solver.Entries {
+		entry[primaryItemType] = []string{primaryItemTypeValues[i]}
+	}
+
 	simpleRules, conditionalRules := SplitRules(rules)
 
 	// looping until no rules make any change
 	for changed := true; changed; changed = false {
+		steps++
 		for i, entry := range solver.Entries {
 			// applying simple rules
 			for _, rule := range simpleRules {
 				changed = rule.ApplySimple(entry) || changed
 			}
-			// running all variations of entryA and entryB
-			for j := i; j < len(solver.Entries); j++ {
-				// applying conditional rules
-				for _, rule := range conditionalRules {
+			// applying conditional rules on  all variations of entryA and entryB
+			for _, rule := range conditionalRules {
+				for j := i; j < len(solver.Entries); j++ {
 					changed = rule.ApplyConditional(entry, solver.Entries[j]) || changed
 				}
 			}
 		}
 	}
+	return
 }
 
 // FindEntriesWithItem returns the entries that contain the specified item
