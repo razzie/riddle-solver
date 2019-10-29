@@ -62,3 +62,23 @@ func NewRootElement(debug bool) *RootElement {
 		RuleForm:    addRule,
 		RuleList:    rules}
 }
+
+// GetRiddle returns the current riddle
+func (root *RootElement) GetRiddle() (*riddle.Riddle, error) {
+	rules := root.RuleList.GetRules()
+	setup, err := root.SetupForm.GetSetup()
+	if err != nil {
+		return nil, err
+	}
+
+	return &riddle.Riddle{
+		Setup: setup,
+		Rules: rules}, nil
+}
+
+// SetRiddle sets the current riddle
+func (root *RootElement) SetRiddle(r *riddle.Riddle) {
+	root.SetupForm.SetSetup(r.Setup)
+	root.RuleList.SetRules(r.Rules)
+	root.SwitchToPage(2)
+}

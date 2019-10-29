@@ -16,11 +16,11 @@ func NewSolverEntry(setup Setup) SolverEntry {
 func (entry SolverEntry) Set(item Item) bool {
 	itemType, value := item.Split()
 	values, _ := entry[itemType]
-	if len(values) > 1 || values[0] != value {
-		entry[itemType] = []string{value}
-		return true
+	if len(values) == 1 && values[0] == value {
+		return false
 	}
-	return false
+	entry[itemType] = []string{value}
+	return true
 }
 
 // Unset removes an item from the possible values for that type

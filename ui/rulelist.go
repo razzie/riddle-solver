@@ -47,25 +47,36 @@ func (l *RuleList) HandleSetup(setup riddle.Setup) {
 	}
 
 	if removeCount > 0 {
-		l.save()
+		l.Save()
 	}
+}
+
+// GetRules returns the rules list in a slice
+func (l *RuleList) GetRules() []riddle.Rule {
+	rules := make([]riddle.Rule, 0, len(l.rules))
+	for _, rule := range l.rules {
+		rules = append(rules, *rule)
+	}
+	return rules
+}
+
+// SetRules resets the list and inserts the provided rules
+func (l *RuleList) SetRules(rules []riddle.Rule) {
+	l.Reset()
+	for _, rule := range rules {
+		heapRule := &riddle.Rule{}
+		*heapRule = rule
+		l.addRule(heapRule, false)
+	}
+	l.Save()
 }
 
 // SaveRule adds a new rule to the list or updates an existing one
 func (l *RuleList) SaveRule(rule *riddle.Rule) {
-	for i, r := range l.rules {
-		if r == rule {
-			l.RemoveItem(i)
-			l.addRule(rule, i)
-			return
-		}
-	}
-
-	l.rules = append(l.rules, rule)
-	l.addRule(rule, -1)
+	l.addRule(rule, true)
 }
 
-func (l *RuleList) addRule(rule *riddle.Rule, index int) {
+func (l *RuleList) addRule(rule *riddle.Rule, save bool) {
 	text := fmt.Sprintf("%s - %s - %s",
 		colorizeItem(rule.ItemA),
 		colorizeItem(rule.ItemB),
@@ -83,8 +94,27 @@ func (l *RuleList) addRule(rule *riddle.Rule, index int) {
 		}
 	}
 
-	l.InsertItem(index, text, "", 0, selected)
-	l.save()
+	index, found := l.findRule(rule)
+	if found {
+		l.RemoveItem(index)
+		l.InsertItem(index, text, "", 0, selected)
+	} else {
+		l.rules = append(l.rules, rule)
+		l.InsertItem(-1, text, "", 0, selected)
+	}
+
+	if save {
+		l.Save()
+	}
+}
+
+func (l *RuleList) findRule(rule *riddle.Rule) (index int, found bool) {
+	for i, r := range l.rules {
+		if r == rule {
+			return i, true
+		}
+	}
+	return -1, false
 }
 
 func (l *RuleList) removeRule(index int, save bool) {
@@ -106,21 +136,15 @@ func (l *RuleList) removeRule(index int, save bool) {
 	l.RemoveItem(index)
 
 	if save {
-		l.save()
+		l.Save()
 	}
 }
 
-func (l *RuleList) save() {
-	if l.saveFunc == nil {
-		return
+// Save calls the save function/callback with the list of rules
+func (l *RuleList) Save() {
+	if l.saveFunc != nil {
+		l.saveFunc(l.GetRules())
 	}
-
-	rules := make([]riddle.Rule, 0, len(l.rules))
-	for _, rule := range l.rules {
-		rules = append(rules, *rule)
-	}
-
-	l.saveFunc(rules)
 }
 
 func (l *RuleList) handleInput(event *tcell.EventKey) *tcell.EventKey {

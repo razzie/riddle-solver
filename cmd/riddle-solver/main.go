@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 
+	"github.com/razzie/riddle-solver/riddle"
 	"github.com/razzie/riddle-solver/ui"
 	"github.com/rivo/tview"
 )
@@ -19,10 +20,19 @@ func main() {
 
 	if *demo {
 		SetupDemo(root)
+	} else {
+		r, err := riddle.LoadRiddleFromFile("riddle.json")
+		if err == nil {
+			root.SetRiddle(r)
+		}
 	}
 
 	go func() {
 		<-root.Quit
+		r, err := root.GetRiddle()
+		if err == nil {
+			r.SaveToFile("riddle.json")
+		}
 		app.Stop()
 	}()
 

@@ -9,8 +9,8 @@ type Rule struct {
 	ItemA             Item
 	ItemB             Item
 	Relation          Relation
-	Condition         string
-	ConditionItemType string
+	Condition         string `json:",omitempty"`
+	ConditionItemType string `json:",omitempty"`
 }
 
 // Check returns an error if the provided Rule is invalid

@@ -49,8 +49,7 @@ func (f *SetupForm) addItemTypeField() {
 	f.valuesFields = append(f.valuesFields, valuesField)
 }
 
-// AddItemType adds a new item type field with the provided values or uses an existing empty one
-func (f *SetupForm) AddItemType(itemType string, values ...string) {
+func (f *SetupForm) addItemType(itemType string, values ...string) {
 	for i := 0; i < f.itemCount; i++ {
 		if len(f.itemTypeFields[i].GetText()) == 0 && len(f.valuesFields[i].GetText()) == 0 {
 			f.itemTypeFields[i].SetText(itemType)
@@ -62,6 +61,11 @@ func (f *SetupForm) AddItemType(itemType string, values ...string) {
 	f.addItemTypeField()
 	f.itemTypeFields[f.itemCount-1].SetText(itemType)
 	f.valuesFields[f.itemCount-1].SetText(strings.Join(values, ", "))
+}
+
+// AddItemType adds a new item type field with the provided values or uses an existing empty one
+func (f *SetupForm) AddItemType(itemType string, values ...string) {
+	f.addItemType(itemType, values...)
 	f.Save()
 }
 
@@ -70,16 +74,15 @@ func (f *SetupForm) SetSaveFunc(saveFunc func(riddle.Setup)) {
 	f.saveFunc = saveFunc
 }
 
-// Save collects all the form data and passes it to the save function
-func (f *SetupForm) Save() {
+// GetSetup returns the current setup
+func (f *SetupForm) GetSetup() (riddle.Setup, error) {
 	var setup = make(riddle.Setup)
 
 	for i := 0; i < f.itemCount; i++ {
 		itemType := f.itemTypeFields[i].GetText()
 		if len(itemType) == 0 {
 			if len(f.valuesFields[i].GetText()) > 0 {
-				f.modal.ModalMessage("Cannot have values without item type")
-				return
+				return nil, fmt.Errorf("Cannot have values without item type")
 			}
 
 			continue
@@ -102,6 +105,25 @@ func (f *SetupForm) Save() {
 	}
 
 	if err := setup.Check(); err != nil {
+		return nil, err
+	}
+
+	return setup, nil
+}
+
+// SetSetup resets the form and inserts the values from the provided setup
+func (f *SetupForm) SetSetup(setup riddle.Setup) {
+	f.Reset()
+	for itemType, values := range setup {
+		f.addItemType(itemType, values...)
+	}
+	f.Save()
+}
+
+// Save collects all the form data and passes it to the save function
+func (f *SetupForm) Save() {
+	setup, err := f.GetSetup()
+	if err != nil {
 		f.modal.ModalMessage(fmt.Sprint(err))
 		return
 	}
