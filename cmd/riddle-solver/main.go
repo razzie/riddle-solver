@@ -10,7 +10,7 @@ import (
 
 func main() {
 	demo := flag.Bool("demo", false, "Einstein's 5 house riddle demo mode")
-	debug := flag.Bool("debug", false, "Enabled an additional debug page")
+	debug := flag.Bool("debug", false, "Enable an additional debug page")
 	flag.Parse()
 
 	root := ui.NewRootElement(*debug)
