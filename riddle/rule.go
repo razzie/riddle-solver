@@ -2,6 +2,8 @@ package riddle
 
 import (
 	"fmt"
+
+	"github.com/antonmedv/expr"
 )
 
 // Rule is used by the riddle solver algorithm
@@ -78,6 +80,35 @@ func (rule *Rule) ApplySimple(entry SolverEntry) bool {
 // ApplyConditional tries to apply a conditional rule to a SolverEntry
 func (rule *Rule) ApplyConditional(entryA, entryB SolverEntry) bool {
 	return false
+}
+
+func (rule *Rule) testCondition(entryA, entryB SolverEntry) (bool, error) {
+	valuesA, _ := entryA[rule.ConditionItemType]
+	valuesB, _ := entryB[rule.ConditionItemType]
+
+	if len(valuesA) != 1 || len(valuesB) != 1 {
+		return false, nil
+	}
+
+	var A interface{}
+	var B interface{}
+
+	environment := map[string]interface{}{
+		"A": A,
+		"B": B,
+	}
+
+	output, err := expr.Eval(rule.Condition, environment)
+	if err != nil {
+		return false, err
+	}
+
+	result, ok := output.(bool)
+	if !ok {
+		return false, fmt.Errorf("'%s' output is not bool", rule.Condition)
+	}
+
+	return result, nil
 }
 
 // SplitRules splits a slice of rules to slices of simple and conditional rules
