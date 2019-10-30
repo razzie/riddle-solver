@@ -2,6 +2,7 @@ package riddle
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/antonmedv/expr"
 )
@@ -29,6 +30,12 @@ func (rule *Rule) Check(setup Setup) error {
 
 	if len(rule.Condition) > 0 && len(rule.ConditionItemType) == 0 {
 		return fmt.Errorf("Condition item type missing")
+	}
+
+	itemTypeA, _ := rule.ItemA.Split()
+	itemTypeB, _ := rule.ItemB.Split()
+	if itemTypeA == itemTypeB {
+		return fmt.Errorf("Item A and B cannot have the same type")
 	}
 
 	if !setup.Contains(rule.ItemA) {
@@ -91,7 +98,18 @@ func (rule *Rule) testCondition(entryA, entryB SolverEntry) (bool, error) {
 	}
 
 	var A interface{}
+	if val, err := strconv.Atoi(valuesA[0]); err != nil {
+		A = valuesA[0]
+	} else {
+		A = val
+	}
+
 	var B interface{}
+	if val, err := strconv.Atoi(valuesB[0]); err != nil {
+		B = valuesA[0]
+	} else {
+		B = val
+	}
 
 	environment := map[string]interface{}{
 		"A": A,
