@@ -38,8 +38,8 @@ func (t *SolverDebugTree) Update() {
 		return
 	}
 
-	solver := riddle.NewSolver(t.setup)
-	steps, err := solver.ApplyRules(t.rules)
+	solver := riddle.NewSolver(t.setup, t.rules)
+	steps, err := solver.Solve(solver.GuessPrimaryItemType())
 	if err != nil {
 		t.modal.ModalMessage(fmt.Sprint(err))
 	}

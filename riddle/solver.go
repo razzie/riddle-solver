@@ -6,10 +6,11 @@ import "fmt"
 type Solver struct {
 	Entries []SolverEntry
 	setup   Setup
+	rules   []Rule
 }
 
 // NewSolver returns a new Solver
-func NewSolver(setup Setup) *Solver {
+func NewSolver(setup Setup, rules []Rule) *Solver {
 	entryCount := setup.GetItemCountPerType()
 	entries := make([]SolverEntry, 0, entryCount)
 
@@ -21,28 +22,39 @@ func NewSolver(setup Setup) *Solver {
 	return &Solver{
 		Entries: entries,
 		setup:   setup,
+		rules:   rules,
 	}
 }
 
-// ApplyRules applies the provided rules to reduce the item variations as much as possible
-func (solver *Solver) ApplyRules(rules []Rule) (steps int, err error) {
+// GuessPrimaryItemType tries to guess the primary item type as it's important for conditional rules
+func (solver *Solver) GuessPrimaryItemType() string {
+	for _, rule := range solver.rules {
+		if len(rule.ConditionItemType) > 0 {
+			return rule.ConditionItemType
+		}
+	}
+	return ""
+}
+
+// Solve tries to solve the riddle by applying all the rule to all entries over and over
+// I like to call it brute-force deduction
+func (solver *Solver) Solve(primaryItemType string) (steps int, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("%v", r)
 		}
 	}()
 
-	if len(rules) == 0 {
+	if len(solver.rules) == 0 {
 		return 0, fmt.Errorf("There are no rules")
 	}
 
-	primaryItemType, _ := rules[0].ItemA.Split()
 	primaryItemTypeValues, _ := solver.setup[primaryItemType]
 	for i, entry := range solver.Entries {
 		entry[primaryItemType] = []string{primaryItemTypeValues[i]}
 	}
 
-	simpleRules, conditionalRules := SplitRules(rules)
+	simpleRules, conditionalRules := SplitRules(solver.rules)
 
 	// looping until no rules make any change
 	for {
