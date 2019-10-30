@@ -47,7 +47,8 @@ func NewPageHandler() *PageHandler {
 		pages:      pages,
 		footer:     footer,
 		modalMsg:   modalMsg,
-		modalYesNo: modalYesNo}
+		modalYesNo: modalYesNo,
+	}
 }
 
 // AddPage adds a publicly listed page to the frame

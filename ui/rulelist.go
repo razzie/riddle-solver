@@ -21,7 +21,8 @@ type RuleList struct {
 func NewRuleList(modal ModalHandler) *RuleList {
 	l := &RuleList{
 		List:  tview.NewList().ShowSecondaryText(false),
-		modal: modal}
+		modal: modal,
+	}
 
 	l.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		return l.handleInput(event)

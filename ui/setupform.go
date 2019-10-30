@@ -22,7 +22,8 @@ type SetupForm struct {
 func NewSetupForm(modal ModalHandler) *SetupForm {
 	f := &SetupForm{
 		Form:  tview.NewForm(),
-		modal: modal}
+		modal: modal,
+	}
 	f.SetLabelColor(tview.Styles.PrimaryTextColor).
 		SetFieldTextColor(tview.Styles.SecondaryTextColor).
 		SetButtonTextColor(tview.Styles.SecondaryTextColor).

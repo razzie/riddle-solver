@@ -18,7 +18,8 @@ func NewSolver(setup Setup) *Solver {
 
 	return &Solver{
 		Entries: entries,
-		setup:   setup}
+		setup:   setup,
+	}
 }
 
 // ApplyRules applies the provided rules to reduce the item variations as much as possible

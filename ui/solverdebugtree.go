@@ -26,7 +26,8 @@ func NewSolverDebugTree() *SolverDebugTree {
 	return &SolverDebugTree{
 		TreeView: tree,
 		root:     root,
-		dirty:    true}
+		dirty:    true,
+	}
 }
 
 // Update updates the results based on the latest setup and rules

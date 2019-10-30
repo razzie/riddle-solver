@@ -64,7 +64,8 @@ func NewRootElement(debug bool) *RootElement {
 		PageHandler: root,
 		SetupForm:   setup,
 		RuleForm:    addRule,
-		RuleList:    rules}
+		RuleList:    rules,
+	}
 }
 
 // GetRiddle returns the current riddle
@@ -77,7 +78,8 @@ func (root *RootElement) GetRiddle() (*riddle.Riddle, error) {
 
 	return &riddle.Riddle{
 		Setup: setup,
-		Rules: rules}, nil
+		Rules: rules,
+	}, nil
 }
 
 // SetRiddle sets the current riddle

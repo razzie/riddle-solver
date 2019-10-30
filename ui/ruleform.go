@@ -61,7 +61,8 @@ func NewRuleForm(modal ModalHandler) *RuleForm {
 		relation:          relation,
 		condition:         condition,
 		conditionItemType: conditionItemType,
-		modal:             modal}
+		modal:             modal,
+	}
 	f.AddButton("Save", func() { f.Save() })
 	f.AddButton("Reset", func() { f.Reset() })
 
