@@ -10,14 +10,15 @@ import (
 // PageHandler handles the layout of the application, pages and modal dialogs
 type PageHandler struct {
 	*tview.Grid
-	Quit       chan bool
-	pages      *tview.Pages
-	footer     *tview.TextView
-	modalMsg   *tview.Modal
-	modalYesNo *tview.Modal
-	pageNames  []string
-	selected   []func()
-	activePage int
+	Quit        chan bool
+	pages       *tview.Pages
+	footer      *tview.TextView
+	modalMsg    *tview.Modal
+	modalYesNo  *tview.Modal
+	pageNames   []string
+	selected    []func()
+	activePage  int
+	modalActive bool
 }
 
 // NewPageHandler returns a new PageHandler
@@ -81,6 +82,7 @@ func (ph *PageHandler) SwitchToPage(page int) {
 func (ph *PageHandler) ModalMessage(msg string) {
 	ph.modalMsg.SetText(msg)
 	ph.pages.SendToFront("modal_msg").ShowPage("modal_msg")
+	ph.modalActive = true
 }
 
 // ModalYesNo displays a modal dialog with a message and yes/no options
@@ -92,6 +94,7 @@ func (ph *PageHandler) ModalYesNo(msg string, yes func()) {
 		ph.pages.HidePage("modal_yes_no")
 	})
 	ph.pages.SendToFront("modal_yes_no").ShowPage("modal_yes_no")
+	ph.modalActive = true
 }
 
 // InputCapture returns a function that handles input capture for PageHandler
@@ -108,6 +111,12 @@ func (ph *PageHandler) handleInput(event *tcell.EventKey) *tcell.EventKey {
 		ph.SwitchToPage(page)
 		return nil
 	} else if key == tcell.KeyEscape {
+		if ph.modalActive {
+			ph.pages.HidePage("modal_msg").HidePage("modal_yes_no")
+			ph.modalActive = false
+			return nil
+		}
+
 		ph.ModalYesNo("Do you really want to quit?", func() {
 			ph.Quit <- true
 		})
