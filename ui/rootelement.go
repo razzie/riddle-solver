@@ -15,6 +15,10 @@ type RootElement struct {
 
 // NewRootElement returns a new RootElement
 func NewRootElement(debug bool) *RootElement {
+	if currentTheme == nil {
+		LightTheme.Apply()
+	}
+
 	root := NewPageHandler()
 
 	setup := NewSetupForm(root)

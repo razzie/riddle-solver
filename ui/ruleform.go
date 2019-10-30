@@ -46,6 +46,8 @@ func NewRuleForm(modal ModalHandler) *RuleForm {
 		SetFieldWidth(30)
 	form := tview.NewForm().
 		SetLabelColor(tview.Styles.PrimaryTextColor).
+		SetFieldTextColor(tview.Styles.SecondaryTextColor).
+		SetButtonTextColor(tview.Styles.SecondaryTextColor).
 		AddFormItem(itemA).
 		AddFormItem(itemB).
 		AddFormItem(relation).

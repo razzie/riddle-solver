@@ -2,7 +2,6 @@ package ui
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/razzie/riddle-solver/riddle"
 	"github.com/rivo/tview"
@@ -45,10 +44,7 @@ func (t *SolverDebugTree) Update() {
 	for i, entry := range solver.Entries {
 		node := tview.NewTreeNode(fmt.Sprintf("Entry #%d", i+1)).SetExpanded(false)
 		for itemType, values := range entry {
-			for i, val := range values {
-				values[i] = colorize(val)
-			}
-			text := fmt.Sprintf("[-]%s: %s", itemType, strings.Join(values, "[-], "))
+			text := colorizeItems(itemType, values)
 			resultNode := tview.NewTreeNode(text)
 			node.AddChild(resultNode)
 		}

@@ -24,6 +24,8 @@ func NewSetupForm(modal ModalHandler) *SetupForm {
 		Form:  tview.NewForm(),
 		modal: modal}
 	f.SetLabelColor(tview.Styles.PrimaryTextColor).
+		SetFieldTextColor(tview.Styles.SecondaryTextColor).
+		SetButtonTextColor(tview.Styles.SecondaryTextColor).
 		AddButton("Add item type", func() { f.addItemTypeField() }).
 		AddButton("Save / apply", func() { f.Save() }).
 		AddButton("Reset", func() { f.Reset() })

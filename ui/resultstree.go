@@ -2,7 +2,6 @@ package ui
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/razzie/riddle-solver/riddle"
 	"github.com/rivo/tview"
@@ -63,10 +62,7 @@ func (t *ResultsTree) Update() {
 			item := reference.(riddle.Item)
 			result := solver.FindAssociatedItems(item)
 			for itemType, values := range result {
-				for i, val := range values {
-					values[i] = colorize(val)
-				}
-				text := fmt.Sprintf("[-]%s: %s", itemType, strings.Join(values, "[-], "))
+				text := colorizeItems(itemType, values)
 				resultNode := tview.NewTreeNode(text)
 				node.AddChild(resultNode)
 			}
