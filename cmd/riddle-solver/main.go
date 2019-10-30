@@ -10,8 +10,18 @@ import (
 
 func main() {
 	demo := flag.Bool("demo", false, "Einstein's 5 house riddle demo mode")
+	theme := flag.String("theme", "light", "Specify light or dark theme")
 	debug := flag.Bool("debug", false, "Enable an additional debug page")
 	flag.Parse()
+
+	themes := map[string]*ui.Theme{
+		"light": &ui.LightTheme,
+		"dark":  &ui.DarkTheme,
+	}
+
+	if t, found := themes[*theme]; found {
+		t.Apply()
+	}
 
 	root := ui.NewRootElement(*debug)
 	app := tview.NewApplication().
