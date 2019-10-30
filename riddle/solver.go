@@ -1,5 +1,7 @@
 package riddle
 
+import "fmt"
+
 // Solver can solve a riddle based on the setup and rules
 type Solver struct {
 	Entries []SolverEntry
@@ -23,9 +25,15 @@ func NewSolver(setup Setup) *Solver {
 }
 
 // ApplyRules applies the provided rules to reduce the item variations as much as possible
-func (solver *Solver) ApplyRules(rules []Rule) (steps int) {
+func (solver *Solver) ApplyRules(rules []Rule) (steps int, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("%v", r)
+		}
+	}()
+
 	if len(rules) == 0 {
-		return
+		return 0, fmt.Errorf("There are no rules")
 	}
 
 	primaryItemType, _ := rules[0].ItemA.Split()
@@ -37,8 +45,10 @@ func (solver *Solver) ApplyRules(rules []Rule) (steps int) {
 	simpleRules, conditionalRules := SplitRules(rules)
 
 	// looping until no rules make any change
-	for changed := true; changed; changed = false {
+	for {
+		changed := false
 		steps++
+
 		for i, entry := range solver.Entries {
 			// applying simple rules
 			for _, rule := range simpleRules {
@@ -51,7 +61,12 @@ func (solver *Solver) ApplyRules(rules []Rule) (steps int) {
 				}
 			}
 		}
+
+		if !changed {
+			break
+		}
 	}
+
 	return
 }
 

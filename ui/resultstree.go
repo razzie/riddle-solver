@@ -14,10 +14,11 @@ type ResultsTree struct {
 	setup riddle.Setup
 	rules []riddle.Rule
 	dirty bool
+	modal ModalHandler
 }
 
 // NewResultsTree returns a new ResultsTree
-func NewResultsTree() *ResultsTree {
+func NewResultsTree(modal ModalHandler) *ResultsTree {
 	root := tview.NewTreeNode("Results")
 	tree := tview.NewTreeView().
 		SetRoot(root).
@@ -27,6 +28,7 @@ func NewResultsTree() *ResultsTree {
 		TreeView: tree,
 		root:     root,
 		dirty:    true,
+		modal:    modal,
 	}
 }
 
@@ -37,7 +39,10 @@ func (t *ResultsTree) Update() {
 	}
 
 	solver := riddle.NewSolver(t.setup)
-	solver.ApplyRules(t.rules)
+	_, err := solver.ApplyRules(t.rules)
+	if err != nil {
+		t.modal.ModalMessage(fmt.Sprint(err))
+	}
 
 	t.dirty = false
 	t.root.ClearChildren()

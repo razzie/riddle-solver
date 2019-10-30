@@ -30,10 +30,10 @@ func NewRootElement(debug bool) *RootElement {
 	rules := NewRuleList(root)
 	root.AddPage("Rules", tview.NewFrame(rules), nil)
 
-	results := NewResultsTree()
+	results := NewResultsTree(root)
 	root.AddPage("Results", tview.NewFrame(results), func() { results.Update() })
 
-	solverdebug := NewSolverDebugTree()
+	solverdebug := NewSolverDebugTree(root)
 	if debug {
 		root.AddPage("Debug", tview.NewFrame(solverdebug), func() { solverdebug.Update() })
 	}

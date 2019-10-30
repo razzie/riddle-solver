@@ -14,11 +14,12 @@ type SolverDebugTree struct {
 	setup riddle.Setup
 	rules []riddle.Rule
 	dirty bool
+	modal ModalHandler
 }
 
 // NewSolverDebugTree returns a new SolverDebugTree
-func NewSolverDebugTree() *SolverDebugTree {
-	root := tview.NewTreeNode("Solver internals")
+func NewSolverDebugTree(modal ModalHandler) *SolverDebugTree {
+	root := tview.NewTreeNode("")
 	tree := tview.NewTreeView().
 		SetRoot(root).
 		SetCurrentNode(root)
@@ -27,6 +28,7 @@ func NewSolverDebugTree() *SolverDebugTree {
 		TreeView: tree,
 		root:     root,
 		dirty:    true,
+		modal:    modal,
 	}
 }
 
@@ -37,10 +39,15 @@ func (t *SolverDebugTree) Update() {
 	}
 
 	solver := riddle.NewSolver(t.setup)
-	solver.ApplyRules(t.rules)
+	steps, err := solver.ApplyRules(t.rules)
+	if err != nil {
+		t.modal.ModalMessage(fmt.Sprint(err))
+	}
 
 	t.dirty = false
-	t.root.ClearChildren()
+	t.root.
+		SetText(fmt.Sprintf("Solver internals (%d steps)", steps)).
+		ClearChildren()
 
 	for i, entry := range solver.Entries {
 		node := tview.NewTreeNode(fmt.Sprintf("Entry #%d", i+1)).SetExpanded(false)

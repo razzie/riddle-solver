@@ -86,15 +86,34 @@ func (rule *Rule) ApplySimple(entry SolverEntry) bool {
 
 // ApplyConditional tries to apply a conditional rule to a SolverEntry
 func (rule *Rule) ApplyConditional(entryA, entryB SolverEntry) bool {
+	switch rule.Relation {
+	case RelAssociated:
+		if entryA.OnlyContains(rule.ItemA) && rule.testCondition(entryA, entryB) {
+			return entryB.Set(rule.ItemB)
+		}
+		if entryB.OnlyContains(rule.ItemB) && rule.testCondition(entryB, entryA) {
+			return entryA.Set(rule.ItemA)
+		}
+		if !entryA.Contains(rule.ItemA) && rule.testCondition(entryA, entryB) {
+			return entryB.Unset(rule.ItemB)
+		}
+		if !entryB.Contains(rule.ItemB) && rule.testCondition(entryB, entryA) {
+			return entryA.Unset(rule.ItemA)
+		}
+
+	case RelDisassociated:
+		// ???
+	}
+
 	return false
 }
 
-func (rule *Rule) testCondition(entryA, entryB SolverEntry) (bool, error) {
+func (rule *Rule) testCondition(entryA, entryB SolverEntry) bool {
 	valuesA, _ := entryA[rule.ConditionItemType]
 	valuesB, _ := entryB[rule.ConditionItemType]
 
 	if len(valuesA) != 1 || len(valuesB) != 1 {
-		return false, nil
+		return false
 	}
 
 	var A interface{}
@@ -118,15 +137,15 @@ func (rule *Rule) testCondition(entryA, entryB SolverEntry) (bool, error) {
 
 	output, err := expr.Eval(rule.Condition, environment)
 	if err != nil {
-		return false, err
+		panic(err)
 	}
 
 	result, ok := output.(bool)
 	if !ok {
-		return false, fmt.Errorf("'%s' output is not bool", rule.Condition)
+		panic(fmt.Errorf("'%s' output is not bool", rule.Condition))
 	}
 
-	return result, nil
+	return result
 }
 
 // SplitRules splits a slice of rules to slices of simple and conditional rules
