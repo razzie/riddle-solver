@@ -1,0 +1,144 @@
+{
+	"Setup": {
+		"beverage": [
+			"tea",
+			"coffee",
+			"milk",
+			"beer",
+			"water"
+		],
+		"cigar": [
+			"PallMall",
+			"Dunhill",
+			"blends",
+			"BlueMaster",
+			"Prince"
+		],
+		"color": [
+			"red",
+			"green",
+			"white",
+			"yellow",
+			"blue"
+		],
+		"house": [
+			"1",
+			"2",
+			"3",
+			"4",
+			"5"
+		],
+		"nationality": [
+			"norwegian",
+			"brit",
+			"swede",
+			"dane",
+			"german"
+		],
+		"pet": [
+			"dogs",
+			"birds",
+			"cats",
+			"horses",
+			"fish"
+		]
+	},
+	"Rules": [
+		{
+			"ItemA": "nationality:brit",
+			"ItemB": "color:red",
+			"Relation": 0
+		},
+		{
+			"ItemA": "nationality:swede",
+			"ItemB": "pet:dogs",
+			"Relation": 0
+		},
+		{
+			"ItemA": "nationality:dane",
+			"ItemB": "beverage:tea",
+			"Relation": 0
+		},
+		{
+			"ItemA": "color:green",
+			"ItemB": "color:white",
+			"Relation": 0,
+			"Condition": "A == B - 1",
+			"ConditionItemType": "house"
+		},
+		{
+			"ItemA": "color:white",
+			"ItemB": "color:green",
+			"Relation": 0,
+			"Condition": "A == B + 1",
+			"ConditionItemType": "house"
+		},
+		{
+			"ItemA": "color:green",
+			"ItemB": "beverage:coffee",
+			"Relation": 0
+		},
+		{
+			"ItemA": "cigar:PallMall",
+			"ItemB": "pet:birds",
+			"Relation": 0
+		},
+		{
+			"ItemA": "color:yellow",
+			"ItemB": "cigar:Dunhill",
+			"Relation": 0
+		},
+		{
+			"ItemA": "house:3",
+			"ItemB": "beverage:milk",
+			"Relation": 0
+		},
+		{
+			"ItemA": "nationality:norwegian",
+			"ItemB": "house:1",
+			"Relation": 0
+		},
+		{
+			"ItemA": "cigar:blends",
+			"ItemB": "pet:cats",
+			"Relation": 0,
+			"Condition": "(A == B - 1) || (A == B + 1)",
+			"ConditionItemType": "house",
+			"IsReversible": true
+		},
+		{
+			"ItemA": "pet:horses",
+			"ItemB": "cigar:Dunhill",
+			"Relation": 0,
+			"Condition": "(A == B - 1) || (A == B + 1)",
+			"ConditionItemType": "house",
+			"IsReversible": true
+		},
+		{
+			"ItemA": "cigar:BlueMaster",
+			"ItemB": "beverage:beer",
+			"Relation": 0
+		},
+		{
+			"ItemA": "nationality:german",
+			"ItemB": "cigar:Prince",
+			"Relation": 0
+		},
+		{
+			"ItemA": "nationality:norwegian",
+			"ItemB": "color:blue",
+			"Relation": 0,
+			"Condition": "(A == B - 1) || (A == B + 1)",
+			"ConditionItemType": "house",
+			"IsReversible": true
+		},
+		{
+			"ItemA": "cigar:blends",
+			"ItemB": "beverage:water",
+			"Relation": 0,
+			"Condition": "(A == B - 1) || (A == B + 1)",
+			"ConditionItemType": "house",
+			"IsReversible": true
+		}
+	]
+}

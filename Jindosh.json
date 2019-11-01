@@ -1,0 +1,138 @@
+{
+	"Setup": {
+		"color": [
+			"purple",
+			"blue",
+			"red",
+			"green",
+			"white"
+		],
+		"drink": [
+			"whiskey",
+			"beer",
+			"absinthe",
+			"rum",
+			"wine"
+		],
+		"jewel": [
+			"SnuffTin",
+			"WarMedal",
+			"Ring",
+			"BirdPendant",
+			"Diamond"
+		],
+		"name": [
+			"Winslow",
+			"Marcolla",
+			"Contee",
+			"Natsiou",
+			"Finch"
+		],
+		"place": [
+			"Dabokva",
+			"Fraeport",
+			"Dunwall",
+			"Karnaca",
+			"Baleton"
+		],
+		"seat": [
+			"1",
+			"2",
+			"3",
+			"4",
+			"5"
+		]
+	},
+	"Rules": [
+		{
+			"ItemA": "name:Winslow",
+			"ItemB": "color:purple",
+			"Relation": 0
+		},
+		{
+			"ItemA": "name:Marcolla",
+			"ItemB": "seat:1",
+			"Relation": 0
+		},
+		{
+			"ItemA": "color:blue",
+			"ItemB": "seat:2",
+			"Relation": 0
+		},
+		{
+			"ItemA": "color:red",
+			"ItemB": "color:green",
+			"Relation": 0,
+			"Condition": "A == B - 1",
+			"ConditionItemType": "seat"
+		},
+		{
+			"ItemA": "color:green",
+			"ItemB": "color:red",
+			"Relation": 0,
+			"Condition": "A == B + 1",
+			"ConditionItemType": "seat"
+		},
+		{
+			"ItemA": "color:red",
+			"ItemB": "drink:whiskey",
+			"Relation": 0
+		},
+		{
+			"ItemA": "place:Dabokva",
+			"ItemB": "color:white",
+			"Relation": 0
+		},
+		{
+			"ItemA": "jewel:SnuffTin",
+			"ItemB": "place:Dabokva",
+			"Relation": 0,
+			"Condition": "(A == B - 1) || (A == B + 1)",
+			"ConditionItemType": "seat",
+			"IsReversible": true
+		},
+		{
+			"ItemA": "name:Contee",
+			"ItemB": "jewel:WarMedal",
+			"Relation": 0
+		},
+		{
+			"ItemA": "place:Fraeport",
+			"ItemB": "jewel:Ring",
+			"Relation": 0
+		},
+		{
+			"ItemA": "jewel:BirdPendant",
+			"ItemB": "drink:absinthe",
+			"Relation": 0
+		},
+		{
+			"ItemA": "jewel:BirdPendant",
+			"ItemB": "place:Dunwall",
+			"Relation": 0,
+			"Condition": "(A == B - 1) || (A == B + 1)",
+			"ConditionItemType": "seat",
+			"IsReversible": true
+		},
+		{
+			"ItemA": "name:Finch",
+			"ItemB": "drink:rum",
+			"Relation": 0
+		},
+		{
+			"ItemA": "place:Karnaca",
+			"ItemB": "drink:wine",
+			"Relation": 0
+		},
+		{
+			"ItemA": "seat:3",
+			"ItemB": "drink:beer",
+			"Relation": 0
+		},
+		{
+			"ItemA": "name:Natsiou",
+			"ItemB": "place:Baleton",
+			"Relation": 0
+		}
+	]
+}
