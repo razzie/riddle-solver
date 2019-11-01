@@ -13,7 +13,7 @@ type Rule struct {
 	Relation          Relation
 	Condition         string `json:",omitempty"`
 	ConditionItemType string `json:",omitempty"`
-	// TODO: IsReversible or ReverseCondition
+	IsReversible      bool   `json:",omitempty"`
 }
 
 // Check returns an error if the provided Rule is invalid
@@ -96,12 +96,14 @@ func (rule *Rule) ApplyConditional(entryA SolverEntry, others []SolverEntry) boo
 		return false
 	}
 
+	var skipped int
 	var matched []SolverEntry
 	var unmatched []SolverEntry
 
 	for _, entryB := range others {
 		B := entryB.GetValue(rule.ConditionItemType)
 		if B == nil {
+			skipped++
 			continue
 		}
 
@@ -115,12 +117,48 @@ func (rule *Rule) ApplyConditional(entryA SolverEntry, others []SolverEntry) boo
 	switch rule.Relation {
 	case RelAssociated:
 		if entryA.OnlyContains(rule.ItemA) {
+			if len(matched) == 1 {
+				return matched[0].Set(rule.ItemB)
+			}
 			return unsetMany(unmatched, rule.ItemB)
+		}
+		if skipped == 0 && !anyContains(matched, rule.ItemB) {
+			return entryA.Unset(rule.ItemA)
+		}
+
+		if rule.IsReversible {
+			if entryA.OnlyContains(rule.ItemB) {
+				if len(matched) == 1 {
+					return matched[0].Set(rule.ItemA)
+				}
+				return unsetMany(unmatched, rule.ItemA)
+			}
+			if skipped == 0 && !anyContains(matched, rule.ItemA) {
+				return entryA.Unset(rule.ItemB)
+			}
 		}
 
 	case RelDisassociated:
 		if entryA.OnlyContains(rule.ItemA) {
+			if len(unmatched) == 1 {
+				return unmatched[0].Set(rule.ItemB)
+			}
 			return unsetMany(matched, rule.ItemB)
+		}
+		if skipped == 0 && anyOnlyContains(matched, rule.ItemB) {
+			return entryA.Unset(rule.ItemA)
+		}
+
+		if rule.IsReversible {
+			if entryA.OnlyContains(rule.ItemB) {
+				if len(unmatched) == 1 {
+					return unmatched[0].Set(rule.ItemA)
+				}
+				return unsetMany(matched, rule.ItemA)
+			}
+			if skipped == 0 && anyOnlyContains(matched, rule.ItemA) {
+				return entryA.Unset(rule.ItemB)
+			}
 		}
 	}
 
@@ -152,4 +190,22 @@ func unsetMany(entries []SolverEntry, item Item) bool {
 		changed = entry.Unset(item) || changed
 	}
 	return changed
+}
+
+func anyContains(entries []SolverEntry, item Item) bool {
+	for _, entry := range entries {
+		if entry.Contains(item) {
+			return true
+		}
+	}
+	return false
+}
+
+func anyOnlyContains(entries []SolverEntry, item Item) bool {
+	for _, entry := range entries {
+		if entry.OnlyContains(item) {
+			return true
+		}
+	}
+	return false
 }

@@ -27,7 +27,7 @@ func NewDemo() *Demo {
 	// the Dane drinks tea
 	demo.hint("nationality:dane", "beverage:tea")
 	// the green house is on the left of the white house
-	demo.neighbor("color:green", "color:white", "A == B - 1")
+	demo.leftneighbor("color:green", "color:white")
 	// the green house's owner drinks coffee
 	demo.hint("color:green", "beverage:coffee")
 	// the person who smokes Pall Mall rears birds
@@ -39,17 +39,17 @@ func NewDemo() *Demo {
 	// the Norwegian lives in the first house
 	demo.hint("nationality:norwegian", "house:1")
 	// the man who smokes blends lives next to the one who keeps cats
-	demo.neighbor("cigar:blends", "pet:cats", "(A == B - 1) || (A == B + 1)")
+	demo.anyneighbor("cigar:blends", "pet:cats")
 	// the man who keeps horses lives next to the man who smokes Dunhill
-	demo.neighbor("pet:horses", "cigar:Dunhill", "(A == B - 1) || (A == B + 1)")
+	demo.anyneighbor("pet:horses", "cigar:Dunhill")
 	// the owner who smokes BlueMaster drinks beer
 	demo.hint("cigar:BlueMaster", "beverage:beer")
 	// the German smokes Prince
 	demo.hint("nationality:german", "cigar:Prince")
 	// the Norwegian lives next to the blue house
-	demo.neighbor("nationality:norwegian", "color:blue", "(A == B - 1) || (A == B + 1)")
+	demo.anyneighbor("nationality:norwegian", "color:blue")
 	// the man who smokes blend has a neighbor who drinks water
-	demo.neighbor("cigar:blends", "beverage:water", "(A == B - 1) || (A == B + 1)")
+	demo.anyneighbor("cigar:blends", "beverage:water")
 
 	return demo
 }
@@ -62,18 +62,36 @@ func (demo *Demo) hint(itemA, itemB string) {
 	demo.Rules = append(demo.Rules, riddle.Rule{
 		ItemA:    riddle.Item(itemA),
 		ItemB:    riddle.Item(itemB),
-		Relation: riddle.RelAssociated})
+		Relation: riddle.RelAssociated,
+	})
 }
 
-func (demo *Demo) neighbor(itemA, itemB, cond string) {
+func (demo *Demo) leftneighbor(itemA, itemB string) {
 	demo.Rules = append(demo.Rules, riddle.Rule{
 		ItemA:             riddle.Item(itemA),
 		ItemB:             riddle.Item(itemB),
 		Relation:          riddle.RelAssociated,
 		ConditionItemType: "house",
-		Condition:         cond})
+		Condition:         "A == B - 1",
+		IsReversible:      false,
+	})
 	demo.Rules = append(demo.Rules, riddle.Rule{
-		ItemA:    riddle.Item(itemA),
-		ItemB:    riddle.Item(itemB),
-		Relation: riddle.RelDisassociated})
+		ItemA:             riddle.Item(itemB),
+		ItemB:             riddle.Item(itemA),
+		Relation:          riddle.RelAssociated,
+		ConditionItemType: "house",
+		Condition:         "A == B + 1",
+		IsReversible:      false,
+	})
+}
+
+func (demo *Demo) anyneighbor(itemA, itemB string) {
+	demo.Rules = append(demo.Rules, riddle.Rule{
+		ItemA:             riddle.Item(itemA),
+		ItemB:             riddle.Item(itemB),
+		Relation:          riddle.RelAssociated,
+		ConditionItemType: "house",
+		Condition:         "(A == B - 1) || (A == B + 1)",
+		IsReversible:      true,
+	})
 }
