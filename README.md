@@ -29,3 +29,10 @@ The question is:  _Who owns the fish?_
 
 Einstein wrote this riddle this century. He said that 98% of the world could not solve it.  
 [The solution](https://udel.edu/~os/riddle-solution.html)
+
+## Screenshots
+
+![Screenshot](screenshots/01.png)
+![Screenshot](screenshots/02.png)
+![Screenshot](screenshots/03.png)
+![Screenshot](screenshots/04.png)
