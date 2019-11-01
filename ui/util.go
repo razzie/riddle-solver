@@ -37,10 +37,6 @@ func getAutocompleteFunc(words []string) func(string) []string {
 			}
 		}
 
-		if len(results) <= 1 {
-			results = nil
-		}
-
 		return
 	}
 }
@@ -55,10 +51,6 @@ func getAutocompleteItemsFunc(items []riddle.Item) func(string) []string {
 			if strings.HasPrefix(strings.ToLower(string(item)), strings.ToLower(currentText)) {
 				results = append(results, string(item))
 			}
-		}
-
-		if len(results) <= 1 {
-			results = nil
 		}
 
 		return
