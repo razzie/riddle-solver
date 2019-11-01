@@ -83,10 +83,13 @@ func (l *RuleList) addRule(rule *riddle.Rule, save bool) {
 		colorizeItem(rule.ItemB),
 		rule.Relation.String())
 
-	if len(rule.Condition) > 0 {
+	if rule.HasCondition() {
 		text += fmt.Sprintf(" if A and B is %s and %s",
 			colorize(rule.ConditionItemType),
 			colorize(rule.Condition))
+		if rule.IsReversible {
+			text += " [reversible[]"
+		}
 	}
 
 	selected := func() {

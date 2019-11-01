@@ -10,15 +10,17 @@ import (
 // RuleForm is an input form to enter data for new rules
 type RuleForm struct {
 	*tview.Form
-	itemA             *tview.InputField
-	itemB             *tview.InputField
-	relation          *tview.DropDown
-	condition         *tview.InputField
-	conditionItemType *tview.InputField
-	rule              *riddle.Rule
-	setup             riddle.Setup
-	saveFunc          func(*riddle.Rule)
-	modal             ModalHandler
+	itemA               *tview.InputField
+	itemB               *tview.InputField
+	relation            *tview.DropDown
+	hasCondition        *tview.Checkbox
+	conditionExpr       *tview.InputField
+	conditionItemType   *tview.InputField
+	conditionReversible *tview.Checkbox
+	rule                *riddle.Rule
+	setup               riddle.Setup
+	saveFunc            func(*riddle.Rule)
+	modal               ModalHandler
 }
 
 // NewRuleForm returns a new RuleForm
@@ -36,14 +38,18 @@ func NewRuleForm(modal ModalHandler) *RuleForm {
 		SetOptions([]string{"associated", "disassociated"}, nil).
 		SetCurrentOption(0).
 		SetFieldWidth(15)
-	condition := tview.NewInputField().
-		SetLabel("Condition (optional)").
-		SetPlaceholder("e.g. (A == B - 1) || (A == B + 1)").
-		SetFieldWidth(50)
 	conditionItemType := tview.NewInputField().
 		SetLabel("Condition item type").
-		SetPlaceholder("e.g. position (or leave empty)").
+		SetPlaceholder("e.g. position").
 		SetFieldWidth(30)
+	conditionExpr := tview.NewInputField().
+		SetLabel("Condition expression").
+		SetPlaceholder("e.g. (A == B - 1) || (A == B + 1)").
+		SetFieldWidth(50)
+	conditionReversible := tview.NewCheckbox().
+		SetLabel("Reversible A <-> B")
+	hasCondition := tview.NewCheckbox().
+		SetLabel("Condition")
 	form := tview.NewForm().
 		SetLabelColor(tview.Styles.PrimaryTextColor).
 		SetFieldTextColor(tview.Styles.SecondaryTextColor).
@@ -51,20 +57,24 @@ func NewRuleForm(modal ModalHandler) *RuleForm {
 		AddFormItem(itemA).
 		AddFormItem(itemB).
 		AddFormItem(relation).
-		AddFormItem(conditionItemType).
-		AddFormItem(condition)
+		AddFormItem(hasCondition)
 
 	f := &RuleForm{
-		Form:              form,
-		itemA:             itemA,
-		itemB:             itemB,
-		relation:          relation,
-		condition:         condition,
-		conditionItemType: conditionItemType,
-		modal:             modal,
+		Form:                form,
+		itemA:               itemA,
+		itemB:               itemB,
+		relation:            relation,
+		hasCondition:        hasCondition,
+		conditionExpr:       conditionExpr,
+		conditionItemType:   conditionItemType,
+		conditionReversible: conditionReversible,
+		modal:               modal,
 	}
 	f.AddButton("Save", func() { f.Save() })
 	f.AddButton("Reset", func() { f.Reset() })
+	f.hasCondition.SetChangedFunc(func(hasCondition bool) {
+		f.showConditionFields(hasCondition)
+	})
 
 	return f
 }
@@ -88,8 +98,13 @@ func (f *RuleForm) EditRule(rule *riddle.Rule) {
 	f.itemA.SetText(string(rule.ItemA))
 	f.itemB.SetText(string(rule.ItemB))
 	f.relation.SetCurrentOption(int(rule.Relation))
-	f.condition.SetText(rule.Condition)
+	f.conditionExpr.SetText(rule.Condition)
 	f.conditionItemType.SetText(rule.ConditionItemType)
+	f.conditionReversible.SetChecked(rule.IsReversible)
+	if f.hasCondition.IsChecked() != rule.HasCondition() {
+		f.showConditionFields(!f.hasCondition.IsChecked())
+		f.hasCondition.SetChecked(rule.HasCondition())
+	}
 }
 
 // Save calls the save function on the currently edited or new rule
@@ -99,8 +114,9 @@ func (f *RuleForm) Save() {
 	rule.ItemB = riddle.Item(f.itemB.GetText())
 	relation, _ := f.relation.GetCurrentOption()
 	rule.Relation = riddle.Relation(relation)
-	rule.Condition = f.condition.GetText()
+	rule.Condition = f.conditionExpr.GetText()
 	rule.ConditionItemType = f.conditionItemType.GetText()
+	rule.IsReversible = f.conditionReversible.IsChecked()
 
 	if err := rule.Check(f.setup); err != nil {
 		f.modal.ModalMessage(fmt.Sprint(err))
@@ -115,6 +131,7 @@ func (f *RuleForm) Save() {
 		f.rule.Relation = rule.Relation
 		f.rule.Condition = rule.Condition
 		f.rule.ConditionItemType = rule.ConditionItemType
+		f.rule.IsReversible = rule.IsReversible
 	}
 
 	if f.saveFunc != nil {
@@ -134,6 +151,25 @@ func (f *RuleForm) Reset() {
 	f.itemA.SetText("")
 	f.itemB.SetText("")
 	f.relation.SetCurrentOption(0)
-	f.condition.SetText("")
+	f.conditionExpr.SetText("")
 	f.conditionItemType.SetText("")
+	f.conditionReversible.SetChecked(false)
+	if f.hasCondition.IsChecked() {
+		f.hasCondition.SetChecked(false)
+		f.RemoveFormItem(6)
+		f.RemoveFormItem(5)
+		f.RemoveFormItem(4)
+	}
+}
+
+func (f *RuleForm) showConditionFields(show bool) {
+	if show {
+		f.AddFormItem(f.conditionItemType)
+		f.AddFormItem(f.conditionExpr)
+		f.AddFormItem(f.conditionReversible)
+	} else {
+		f.RemoveFormItem(6)
+		f.RemoveFormItem(5)
+		f.RemoveFormItem(4)
+	}
 }
