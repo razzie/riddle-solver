@@ -2,4 +2,4 @@
 .DEFAULT_GOAL := riddle-solver
 
 riddle-solver:
-	go build ./cmd/riddle-solver
+	go build -ldflags="-s -w" ./cmd/riddle-solver
