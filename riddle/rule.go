@@ -28,14 +28,16 @@ func (rule *Rule) Check(setup Setup) error {
 		return fmt.Errorf("Item A and B cannot be the same")
 	}
 
-	if len(rule.Condition) > 0 && len(rule.ConditionItemType) == 0 {
-		return fmt.Errorf("Condition item type missing")
-	}
-
-	itemTypeA, _ := rule.ItemA.Split()
-	itemTypeB, _ := rule.ItemB.Split()
-	if itemTypeA == itemTypeB {
-		return fmt.Errorf("Item A and B cannot have the same type")
+	if rule.HasCondition() {
+		if len(rule.ConditionItemType) == 0 {
+			return fmt.Errorf("Condition item type missing")
+		}
+	} else {
+		itemTypeA, _ := rule.ItemA.Split()
+		itemTypeB, _ := rule.ItemB.Split()
+		if itemTypeA == itemTypeB {
+			return fmt.Errorf("Item A and B cannot have the same type")
+		}
 	}
 
 	if !setup.Contains(rule.ItemA) {
