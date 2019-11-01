@@ -33,6 +33,12 @@ func (solver *Solver) GuessPrimaryItemType() string {
 			return rule.ConditionItemType
 		}
 	}
+
+	if len(solver.rules) > 0 {
+		itemType, _ := solver.rules[0].ItemA.Split()
+		return itemType
+	}
+
 	return ""
 }
 
