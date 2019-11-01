@@ -1,5 +1,9 @@
 package riddle
 
+import (
+	"strconv"
+)
+
 // SolverEntry is a unit of riddle items that belong together
 type SolverEntry map[string][]string
 
@@ -57,6 +61,20 @@ func (entry SolverEntry) GetExcludedItems(setup Setup) (excluded []Item) {
 		if !entry.Contains(item) {
 			excluded = append(excluded, item)
 		}
+	}
+	return
+}
+
+// GetValue returns the value of an item type or nil if there are multiple choices
+func (entry SolverEntry) GetValue(itemType string) (result interface{}) {
+	values, _ := entry[itemType]
+	if len(values) != 1 {
+		return
+	}
+	if val, err := strconv.Atoi(values[0]); err != nil {
+		result = values[0]
+	} else {
+		result = val
 	}
 	return
 }

@@ -60,22 +60,17 @@ func (solver *Solver) Solve(primaryItemType string) (steps int, err error) {
 		entry[primaryItemType] = []string{primaryItemTypeValues[i]}
 	}
 
-	simpleRules, conditionalRules := SplitRules(solver.rules)
-
 	// looping until no rules make any change
 	for {
 		changed := false
 		steps++
 
-		for i, entry := range solver.Entries {
-			// applying simple rules
-			for _, rule := range simpleRules {
-				changed = rule.ApplySimple(entry) || changed
-			}
-			// applying conditional rules on  all variations of entryA and entryB
-			for _, rule := range conditionalRules {
-				for j := i; j < len(solver.Entries); j++ {
-					changed = rule.ApplyConditional(entry, solver.Entries[j]) || changed
+		for _, entry := range solver.Entries {
+			for _, rule := range solver.rules {
+				if rule.HasCondition() {
+					changed = rule.ApplyConditional(entry, solver.Entries) || changed
+				} else {
+					changed = rule.ApplySimple(entry) || changed
 				}
 			}
 		}

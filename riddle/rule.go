@@ -2,7 +2,6 @@ package riddle
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/antonmedv/expr"
 )
@@ -14,6 +13,7 @@ type Rule struct {
 	Relation          Relation
 	Condition         string `json:",omitempty"`
 	ConditionItemType string `json:",omitempty"`
+	// TODO: IsReversible or ReverseCondition
 }
 
 // Check returns an error if the provided Rule is invalid
@@ -55,6 +55,11 @@ func (rule *Rule) Check(setup Setup) error {
 	return nil
 }
 
+// HasCondition returns whether a rule has a condition
+func (rule *Rule) HasCondition() bool {
+	return len(rule.Condition) > 0
+}
+
 // ApplySimple tries to apply a simple (non-conditional) rule to a SolverEntry
 func (rule *Rule) ApplySimple(entry SolverEntry) bool {
 	switch rule.Relation {
@@ -85,51 +90,44 @@ func (rule *Rule) ApplySimple(entry SolverEntry) bool {
 }
 
 // ApplyConditional tries to apply a conditional rule to a SolverEntry
-func (rule *Rule) ApplyConditional(entryA, entryB SolverEntry) bool {
+func (rule *Rule) ApplyConditional(entryA SolverEntry, others []SolverEntry) bool {
+	A := entryA.GetValue(rule.ConditionItemType)
+	if A == nil {
+		return false
+	}
+
+	var matched []SolverEntry
+	var unmatched []SolverEntry
+
+	for _, entryB := range others {
+		B := entryB.GetValue(rule.ConditionItemType)
+		if B == nil {
+			continue
+		}
+
+		if rule.isConditionMatching(A, B) {
+			matched = append(matched, entryB)
+		} else {
+			unmatched = append(unmatched, entryB)
+		}
+	}
+
 	switch rule.Relation {
 	case RelAssociated:
-		if entryA.OnlyContains(rule.ItemA) && rule.testCondition(entryA, entryB) {
-			return entryB.Set(rule.ItemB)
-		}
-		if entryB.OnlyContains(rule.ItemB) && rule.testCondition(entryB, entryA) {
-			return entryA.Set(rule.ItemA)
-		}
-		if !entryA.Contains(rule.ItemA) && rule.testCondition(entryA, entryB) {
-			return entryB.Unset(rule.ItemB)
-		}
-		if !entryB.Contains(rule.ItemB) && rule.testCondition(entryB, entryA) {
-			return entryA.Unset(rule.ItemA)
+		if entryA.OnlyContains(rule.ItemA) {
+			return unsetMany(unmatched, rule.ItemB)
 		}
 
 	case RelDisassociated:
-		// ???
+		if entryA.OnlyContains(rule.ItemA) {
+			return unsetMany(matched, rule.ItemB)
+		}
 	}
 
 	return false
 }
 
-func (rule *Rule) testCondition(entryA, entryB SolverEntry) bool {
-	valuesA, _ := entryA[rule.ConditionItemType]
-	valuesB, _ := entryB[rule.ConditionItemType]
-
-	if len(valuesA) != 1 || len(valuesB) != 1 {
-		return false
-	}
-
-	var A interface{}
-	if val, err := strconv.Atoi(valuesA[0]); err != nil {
-		A = valuesA[0]
-	} else {
-		A = val
-	}
-
-	var B interface{}
-	if val, err := strconv.Atoi(valuesB[0]); err != nil {
-		B = valuesA[0]
-	} else {
-		B = val
-	}
-
+func (rule *Rule) isConditionMatching(A, B interface{}) bool {
 	environment := map[string]interface{}{
 		"A": A,
 		"B": B,
@@ -148,14 +146,10 @@ func (rule *Rule) testCondition(entryA, entryB SolverEntry) bool {
 	return result
 }
 
-// SplitRules splits a slice of rules to slices of simple and conditional rules
-func SplitRules(rules []Rule) (simple []Rule, conditional []Rule) {
-	for _, rule := range rules {
-		if len(rule.Condition) > 0 {
-			conditional = append(conditional, rule)
-		} else {
-			simple = append(simple, rule)
-		}
+func unsetMany(entries []SolverEntry, item Item) bool {
+	changed := false
+	for _, entry := range entries {
+		changed = entry.Unset(item) || changed
 	}
-	return
+	return changed
 }
