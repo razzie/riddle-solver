@@ -65,12 +65,27 @@ func (solver *Solver) Solve(primaryItemType string) (steps int, err error) {
 		changed := false
 		steps++
 
-		for _, entry := range solver.Entries {
+		for i, entry := range solver.Entries {
+
+			// apply rules
 			for _, rule := range solver.rules {
 				if rule.HasCondition() {
 					changed = rule.ApplyConditional(entry, solver.Entries) || changed
 				} else {
 					changed = rule.ApplySimple(entry) || changed
+				}
+			}
+
+			// unset redundant items
+			for itemType, values := range entry {
+				if len(values) == 1 {
+					item := NewItem(itemType, values[0])
+					for j, entry2 := range solver.Entries {
+						if i == j {
+							continue
+						}
+						changed = entry2.Unset(item) || changed
+					}
 				}
 			}
 		}
