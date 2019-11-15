@@ -70,11 +70,9 @@ func NewRuleForm(modal ModalHandler) *RuleForm {
 		conditionReversible: conditionReversible,
 		modal:               modal,
 	}
-	f.AddButton("Save", func() { f.Save() })
-	f.AddButton("Reset", func() { f.Reset() })
-	f.hasCondition.SetChangedFunc(func(hasCondition bool) {
-		f.showConditionFields(hasCondition)
-	})
+	f.AddButton("Save", f.Save)
+	f.AddButton("Reset", f.Reset)
+	f.hasCondition.SetChangedFunc(f.showConditionFields)
 
 	return f
 }

@@ -99,9 +99,7 @@ func (ph *PageHandler) ModalYesNo(msg string, yes func()) {
 
 // InputCapture returns a function that handles input capture for PageHandler
 func (ph *PageHandler) InputCapture() func(event *tcell.EventKey) *tcell.EventKey {
-	return func(event *tcell.EventKey) *tcell.EventKey {
-		return ph.handleInput(event)
-	}
+	return ph.handleInput
 }
 
 func (ph *PageHandler) handleInput(event *tcell.EventKey) *tcell.EventKey {

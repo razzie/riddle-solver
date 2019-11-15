@@ -24,9 +24,7 @@ func NewRuleList(modal ModalHandler) *RuleList {
 		modal: modal,
 	}
 
-	l.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		return l.handleInput(event)
-	})
+	l.SetInputCapture(l.handleInput)
 
 	return l
 }

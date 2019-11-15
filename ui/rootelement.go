@@ -31,11 +31,11 @@ func NewRootElement(debug bool) *RootElement {
 	root.AddPage("Rules", tview.NewFrame(rules), nil)
 
 	results := NewResultsTree(root)
-	root.AddPage("Results", tview.NewFrame(results), func() { results.Update() })
+	root.AddPage("Results", tview.NewFrame(results), results.Update)
 
 	solverdebug := NewSolverDebugTree(root)
 	if debug {
-		root.AddPage("Debug", tview.NewFrame(solverdebug), func() { solverdebug.Update() })
+		root.AddPage("Debug", tview.NewFrame(solverdebug), solverdebug.Update)
 	}
 
 	setup.SetSaveFunc(func(setup riddle.Setup) {
