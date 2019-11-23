@@ -2,6 +2,7 @@ package riddle
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 )
 
@@ -13,13 +14,47 @@ var (
 
 // Riddle contains the setup and rules of the riddle
 type Riddle struct {
-	Setup Setup
-	Rules []Rule
+	Setup           Setup
+	Rules           []Rule
+	PrimaryItemType string `json:",omitempty"`
 }
 
 // NewRiddle returns a new Riddle
 func NewRiddle() *Riddle {
 	return &Riddle{Setup: make(Setup)}
+}
+
+// Check returns an error if the riddle is invalid
+func (r *Riddle) Check() error {
+	if err := r.Setup.Check(); err != nil {
+		return err
+	}
+
+	for i, rule := range r.Rules {
+		if err := rule.Check(r.Setup); err != nil {
+			return fmt.Errorf("rule#%d error: %v", i+1, err)
+		}
+	}
+
+	if len(r.PrimaryItemType) > 0 {
+		if _, ok := r.Setup[r.PrimaryItemType]; !ok {
+			return fmt.Errorf("Primary item type %q not found", r.PrimaryItemType)
+		}
+	}
+
+	return nil
+}
+
+// Solve solves the riddle and returns the entries
+func (r *Riddle) Solve() ([]SolverEntry, error) {
+	solver := NewSolver(r.Setup, r.Rules)
+	primaryItemType := r.PrimaryItemType
+	if len(primaryItemType) == 0 {
+		primaryItemType = solver.GuessPrimaryItemType()
+	}
+
+	_, err := solver.Solve(primaryItemType)
+	return solver.Entries, err
 }
 
 // LoadRiddle loads the riddle from a byte slice in JSON format
@@ -104,6 +139,7 @@ func (r *Riddle) anyneighbor(itemA, itemB string) {
 func newEinsteinRiddle() *Riddle {
 	r := NewRiddle()
 
+	r.PrimaryItemType = "house"
 	r.items("house", "1", "2", "3", "4", "5")
 	r.items("nationality", "norwegian", "brit", "swede", "dane", "german")
 	r.items("color", "red", "green", "white", "yellow", "blue")
@@ -148,6 +184,7 @@ func newEinsteinRiddle() *Riddle {
 func newJindoshRiddle() *Riddle {
 	r := NewRiddle()
 
+	r.PrimaryItemType = "seat"
 	r.items("seat", "1", "2", "3", "4", "5")
 	r.items("name", "Winslow", "Marcolla", "Natsiou", "Finch")
 	r.items("color", "purple", "blue", "red", "green", "white")
