@@ -78,3 +78,13 @@ func (entry SolverEntry) GetValue(itemType string) (result interface{}) {
 	}
 	return
 }
+
+// IsSolved return true if the entry contains one value for each item type
+func (entry SolverEntry) IsSolved() bool {
+	for _, values := range entry {
+		if len(values) != 1 {
+			return false
+		}
+	}
+	return true
+}

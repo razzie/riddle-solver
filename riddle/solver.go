@@ -127,3 +127,13 @@ func (solver *Solver) FindAssociatedItems(item Item) map[string][]string {
 	delete(result, itemType)
 	return result
 }
+
+// IsSolved returns whether the solver managed to solve the riddle
+func (solver *Solver) IsSolved() bool {
+	for _, entry := range solver.Entries {
+		if !entry.IsSolved() {
+			return false
+		}
+	}
+	return true
+}

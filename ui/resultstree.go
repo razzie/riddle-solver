@@ -44,6 +44,8 @@ func (t *ResultsTree) Update() {
 	_, err := solver.Solve(solver.GuessPrimaryItemType())
 	if err != nil {
 		t.modal.ModalMessage(fmt.Sprint(err))
+	} else if solver.IsSolved() {
+		t.modal.ModalMessage("Riddle solved")
 	}
 
 	t.dirty = false

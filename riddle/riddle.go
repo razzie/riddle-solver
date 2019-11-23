@@ -46,7 +46,7 @@ func (r *Riddle) Check() error {
 }
 
 // Solve solves the riddle and returns the entries
-func (r *Riddle) Solve() ([]SolverEntry, error) {
+func (r *Riddle) Solve() ([]SolverEntry, bool, error) {
 	solver := NewSolver(r.Setup, r.Rules)
 	primaryItemType := r.PrimaryItemType
 	if len(primaryItemType) == 0 {
@@ -54,7 +54,7 @@ func (r *Riddle) Solve() ([]SolverEntry, error) {
 	}
 
 	_, err := solver.Solve(primaryItemType)
-	return solver.Entries, err
+	return solver.Entries, solver.IsSolved(), err
 }
 
 // LoadRiddle loads the riddle from a byte slice in JSON format
