@@ -14,7 +14,7 @@ func main() {
 	demo := flag.Bool("demo", false, "Einstein's 5 house riddle demo mode")
 	theme := flag.String("theme", "light", "Specify light or dark theme")
 	debug := flag.Bool("debug", false, "Enable an additional debug page")
-	load := flag.String("load", "riddle.json", "Specify a riddle JSON file to load")
+	load := flag.String("load", "autosave.json", "Specify a riddle JSON file to load")
 	flag.Parse()
 
 	themes := map[string]*ui.Theme{
@@ -44,7 +44,7 @@ func main() {
 		<-root.Quit
 		r, err := root.GetRiddle()
 		if err == nil {
-			r.SaveToFile("riddle.json")
+			r.SaveToFile("autosave.json")
 		}
 		app.Stop()
 	}()
