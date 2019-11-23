@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	SetConsoleTitle("Razzie's Riddle Solver")
+	ui.SetConsoleTitle("Razzie's Riddle Solver")
 
 	demo := flag.Bool("demo", false, "Einstein's 5 house riddle demo mode")
 	theme := flag.String("theme", "light", "Specify light or dark theme")

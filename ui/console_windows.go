@@ -1,5 +1,5 @@
 //+build windows
-package main
+package ui
 
 import (
 	"syscall"
