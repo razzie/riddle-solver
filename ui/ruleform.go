@@ -9,7 +9,8 @@ import (
 
 // RuleForm is an input form to enter data for new rules
 type RuleForm struct {
-	*tview.Form
+	tview.Primitive
+	form                *tview.Form
 	itemA               *tview.InputField
 	itemB               *tview.InputField
 	relation            *tview.DropDown
@@ -60,7 +61,8 @@ func NewRuleForm(modal ModalHandler) *RuleForm {
 		AddFormItem(hasCondition)
 
 	f := &RuleForm{
-		Form:                form,
+		Primitive:           form,
+		form:                form,
 		itemA:               itemA,
 		itemB:               itemB,
 		relation:            relation,
@@ -70,8 +72,8 @@ func NewRuleForm(modal ModalHandler) *RuleForm {
 		conditionReversible: conditionReversible,
 		modal:               modal,
 	}
-	f.AddButton("Save", f.Save)
-	f.AddButton("Reset", f.Reset)
+	form.AddButton("Save", f.Save)
+	form.AddButton("Reset", f.Reset)
 	f.hasCondition.SetChangedFunc(f.showConditionFields)
 
 	return f
@@ -146,6 +148,7 @@ func (f *RuleForm) SetSaveFunc(saveFunc func(*riddle.Rule)) {
 // Reset resets the form
 func (f *RuleForm) Reset() {
 	f.rule = nil
+	f.form.SetFocus(0)
 	f.itemA.SetText("")
 	f.itemB.SetText("")
 	f.relation.SetCurrentOption(0)
@@ -154,20 +157,20 @@ func (f *RuleForm) Reset() {
 	f.conditionReversible.SetChecked(false)
 	if f.hasCondition.IsChecked() {
 		f.hasCondition.SetChecked(false)
-		f.RemoveFormItem(6)
-		f.RemoveFormItem(5)
-		f.RemoveFormItem(4)
+		f.form.RemoveFormItem(6)
+		f.form.RemoveFormItem(5)
+		f.form.RemoveFormItem(4)
 	}
 }
 
 func (f *RuleForm) showConditionFields(show bool) {
 	if show {
-		f.AddFormItem(f.conditionItemType)
-		f.AddFormItem(f.conditionExpr)
-		f.AddFormItem(f.conditionReversible)
+		f.form.AddFormItem(f.conditionItemType)
+		f.form.AddFormItem(f.conditionExpr)
+		f.form.AddFormItem(f.conditionReversible)
 	} else {
-		f.RemoveFormItem(6)
-		f.RemoveFormItem(5)
-		f.RemoveFormItem(4)
+		f.form.RemoveFormItem(6)
+		f.form.RemoveFormItem(5)
+		f.form.RemoveFormItem(4)
 	}
 }

@@ -9,7 +9,8 @@ import (
 
 // SolverDebugTree shows solver internals
 type SolverDebugTree struct {
-	*tview.TreeView
+	tview.Primitive
+	tree  *tview.TreeView
 	root  *tview.TreeNode
 	setup riddle.Setup
 	rules []riddle.Rule
@@ -25,10 +26,11 @@ func NewSolverDebugTree(modal ModalHandler) *SolverDebugTree {
 		SetCurrentNode(root)
 
 	return &SolverDebugTree{
-		TreeView: tree,
-		root:     root,
-		dirty:    true,
-		modal:    modal,
+		Primitive: tree,
+		tree:      tree,
+		root:      root,
+		dirty:     true,
+		modal:     modal,
 	}
 }
 
@@ -59,7 +61,7 @@ func (t *SolverDebugTree) Update() {
 		t.root.AddChild(node)
 	}
 
-	t.SetSelectedFunc(func(node *tview.TreeNode) {
+	t.tree.SetSelectedFunc(func(node *tview.TreeNode) {
 		node.SetExpanded(!node.IsExpanded())
 	})
 }

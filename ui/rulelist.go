@@ -10,7 +10,8 @@ import (
 
 // RuleList is a UI element that contains the list of rules
 type RuleList struct {
-	*tview.List
+	tview.Primitive
+	list     *tview.List
 	rules    []*riddle.Rule
 	editFunc func(*riddle.Rule)
 	saveFunc func([]riddle.Rule)
@@ -19,13 +20,13 @@ type RuleList struct {
 
 // NewRuleList returns a new RuleList
 func NewRuleList(modal ModalHandler) *RuleList {
+	list := tview.NewList().ShowSecondaryText(false)
 	l := &RuleList{
-		List:  tview.NewList().ShowSecondaryText(false),
-		modal: modal,
+		Primitive: list,
+		list:      list,
+		modal:     modal,
 	}
-
-	l.SetInputCapture(l.handleInput)
-
+	list.SetInputCapture(l.handleInput)
 	return l
 }
 
@@ -98,11 +99,11 @@ func (l *RuleList) addRule(rule *riddle.Rule, save bool) {
 
 	index, found := l.findRule(rule)
 	if found {
-		l.RemoveItem(index)
-		l.InsertItem(index, text, "", 0, selected)
+		l.list.RemoveItem(index)
+		l.list.InsertItem(index, text, "", 0, selected)
 	} else {
 		l.rules = append(l.rules, rule)
-		l.InsertItem(-1, text, "", 0, selected)
+		l.list.InsertItem(-1, text, "", 0, selected)
 	}
 
 	if save {
@@ -135,7 +136,7 @@ func (l *RuleList) removeRule(index int, save bool) {
 	}
 
 	l.rules = append(l.rules[:index], l.rules[index+1:]...)
-	l.RemoveItem(index)
+	l.list.RemoveItem(index)
 
 	if save {
 		l.Save()
@@ -153,7 +154,7 @@ func (l *RuleList) handleInput(event *tcell.EventKey) *tcell.EventKey {
 	key := event.Key()
 	if key >= tcell.KeyDelete {
 		remove := func() {
-			l.removeRule(l.GetCurrentItem(), true)
+			l.removeRule(l.list.GetCurrentItem(), true)
 		}
 		l.modal.ModalYesNo("Do you really want to remove this rule?", remove)
 		return nil
@@ -175,5 +176,5 @@ func (l *RuleList) SetSaveFunc(saveFunc func([]riddle.Rule)) {
 // Reset resets the list
 func (l *RuleList) Reset() {
 	l.rules = nil
-	l.Clear()
+	l.list.Clear()
 }

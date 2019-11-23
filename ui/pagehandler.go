@@ -9,7 +9,7 @@ import (
 
 // PageHandler handles the layout of the application, pages and modal dialogs
 type PageHandler struct {
-	*tview.Grid
+	tview.Primitive
 	Quit        chan bool
 	pages       *tview.Pages
 	footer      *tview.TextView
@@ -43,7 +43,7 @@ func NewPageHandler() *PageHandler {
 	pages.AddPage("modal_yes_no", modalYesNo, false, false)
 
 	return &PageHandler{
-		Grid:       grid,
+		Primitive:  grid,
 		Quit:       make(chan bool),
 		pages:      pages,
 		footer:     footer,

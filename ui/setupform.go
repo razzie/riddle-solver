@@ -10,7 +10,8 @@ import (
 
 // SetupForm is a form where the user can input riddle item types and values
 type SetupForm struct {
-	*tview.Form
+	tview.Primitive
+	form           *tview.Form
 	saveFunc       func(riddle.Setup)
 	itemCount      int
 	itemTypeFields []*tview.InputField
@@ -20,11 +21,13 @@ type SetupForm struct {
 
 // NewSetupForm returns a new SetupForm
 func NewSetupForm(modal ModalHandler) *SetupForm {
+	form := tview.NewForm()
 	f := &SetupForm{
-		Form:  tview.NewForm(),
-		modal: modal,
+		Primitive: form,
+		form:      form,
+		modal:     modal,
 	}
-	f.SetLabelColor(tview.Styles.PrimaryTextColor).
+	form.SetLabelColor(tview.Styles.PrimaryTextColor).
 		SetFieldTextColor(tview.Styles.SecondaryTextColor).
 		SetButtonTextColor(tview.Styles.SecondaryTextColor).
 		AddButton("Add item type", f.addItemTypeField).
@@ -41,14 +44,14 @@ func (f *SetupForm) addItemTypeField() {
 		SetLabel(fmt.Sprintf("#%-2d item type", f.itemCount)).
 		SetPlaceholder("e.g. color").
 		SetFieldWidth(20)
-	f.AddFormItem(itemTypeField)
+	f.form.AddFormItem(itemTypeField)
 	f.itemTypeFields = append(f.itemTypeFields, itemTypeField)
 
 	valuesField := tview.NewInputField().
 		SetLabel("    values").
 		SetPlaceholder("e.g. red, green, blue").
 		SetFieldWidth(40)
-	f.AddFormItem(valuesField)
+	f.form.AddFormItem(valuesField)
 	f.valuesFields = append(f.valuesFields, valuesField)
 }
 
@@ -138,8 +141,9 @@ func (f *SetupForm) Save() {
 
 // Reset resets the form to its initial state
 func (f *SetupForm) Reset() {
+	f.form.SetFocus(0)
 	f.itemCount = 0
-	f.Clear(false)
+	f.form.Clear(false)
 	f.itemTypeFields = nil
 	f.valuesFields = nil
 	f.addItemTypeField()

@@ -9,7 +9,8 @@ import (
 
 // ResultsTree is a UI tree element that lets the user browse the riddle results
 type ResultsTree struct {
-	*tview.TreeView
+	tview.Primitive
+	tree  *tview.TreeView
 	root  *tview.TreeNode
 	setup riddle.Setup
 	rules []riddle.Rule
@@ -25,10 +26,11 @@ func NewResultsTree(modal ModalHandler) *ResultsTree {
 		SetCurrentNode(root)
 
 	return &ResultsTree{
-		TreeView: tree,
-		root:     root,
-		dirty:    true,
-		modal:    modal,
+		Primitive: tree,
+		tree:      tree,
+		root:      root,
+		dirty:     true,
+		modal:     modal,
 	}
 }
 
@@ -57,7 +59,7 @@ func (t *ResultsTree) Update() {
 		t.root.AddChild(itemTypeNode)
 	}
 
-	t.SetSelectedFunc(func(node *tview.TreeNode) {
+	t.tree.SetSelectedFunc(func(node *tview.TreeNode) {
 		children := node.GetChildren()
 		if len(children) == 0 {
 			reference := node.GetReference()
