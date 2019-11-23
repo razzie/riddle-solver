@@ -16,5 +16,8 @@ func NewItem(itemType, value string) Item {
 // Split returns the item type and item as two separate strings
 func (item Item) Split() (string, string) {
 	parts := strings.SplitN(string(item), ":", 2)
-	return parts[0], parts[1]
+	if len(parts) == 2 {
+		return parts[0], parts[1]
+	}
+	return string(item), ""
 }
