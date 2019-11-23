@@ -32,7 +32,7 @@ func main() {
 		SetRoot(root, true)
 
 	if *demo {
-		root.SetRiddle(NewDemo().Riddle)
+		root.SetRiddle(riddle.EinsteinRiddle)
 	} else {
 		r, err := riddle.LoadRiddleFromFile(*load)
 		if err == nil {
