@@ -2,15 +2,14 @@ package ui
 
 import (
 	"github.com/razzie/riddle-solver/riddle"
-	"github.com/rivo/tview"
 )
 
 // RootElement is the root UI element
 type RootElement struct {
 	*PageHandler
-	SetupForm *SetupForm
-	RuleForm  *RuleForm
-	RuleList  *RuleList
+	SetupForm *SetupPage
+	RuleForm  *AddRulePage
+	RuleList  *RulesPage
 }
 
 // NewRootElement returns a new RootElement
@@ -22,20 +21,20 @@ func NewRootElement(debug bool) *RootElement {
 	root := NewPageHandler()
 
 	setup := NewSetupForm(root)
-	root.AddPage("Setup", setup, nil)
+	root.AddPage(setup)
 
 	addRule := NewRuleForm(root)
-	root.AddPage("Add rule", addRule, nil)
+	root.AddPage(addRule)
 
 	rules := NewRuleList(root)
-	root.AddPage("Rules", tview.NewFrame(rules), nil)
+	root.AddPage(rules)
 
 	results := NewResultsTree(root)
-	root.AddPage("Results", tview.NewFrame(results), results.Update)
+	root.AddPage(results)
 
 	solverdebug := NewSolverDebugTree(root)
 	if debug {
-		root.AddPage("Debug", tview.NewFrame(solverdebug), solverdebug.Update)
+		root.AddPage(solverdebug)
 	}
 
 	setup.SetSaveFunc(func(setup riddle.Setup) {

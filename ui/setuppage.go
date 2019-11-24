@@ -8,9 +8,9 @@ import (
 	"github.com/rivo/tview"
 )
 
-// SetupForm is a form where the user can input riddle item types and values
-type SetupForm struct {
-	tview.Primitive
+// SetupPage is a form where the user can input riddle item types and values
+type SetupPage struct {
+	Page
 	form           *tview.Form
 	saveFunc       func(riddle.Setup)
 	itemCount      int
@@ -20,12 +20,12 @@ type SetupForm struct {
 }
 
 // NewSetupForm returns a new SetupForm
-func NewSetupForm(modal ModalHandler) *SetupForm {
+func NewSetupForm(modal ModalHandler) *SetupPage {
 	form := tview.NewForm()
-	f := &SetupForm{
-		Primitive: form,
-		form:      form,
-		modal:     modal,
+	f := &SetupPage{
+		Page:  NewPage(form, "Setup"),
+		form:  form,
+		modal: modal,
 	}
 	form.SetLabelColor(tview.Styles.PrimaryTextColor).
 		SetFieldTextColor(tview.Styles.SecondaryTextColor).
@@ -37,64 +37,64 @@ func NewSetupForm(modal ModalHandler) *SetupForm {
 	return f
 }
 
-func (f *SetupForm) addItemTypeField() {
-	f.itemCount++
+func (p *SetupPage) addItemTypeField() {
+	p.itemCount++
 
 	itemTypeField := tview.NewInputField().
-		SetLabel(fmt.Sprintf("#%-2d item type", f.itemCount)).
+		SetLabel(fmt.Sprintf("#%-2d item type", p.itemCount)).
 		SetPlaceholder("e.g. color").
 		SetFieldWidth(20)
-	f.form.AddFormItem(itemTypeField)
-	f.itemTypeFields = append(f.itemTypeFields, itemTypeField)
+	p.form.AddFormItem(itemTypeField)
+	p.itemTypeFields = append(p.itemTypeFields, itemTypeField)
 
 	valuesField := tview.NewInputField().
 		SetLabel("    values").
 		SetPlaceholder("e.g. red, green, blue").
 		SetFieldWidth(40)
-	f.form.AddFormItem(valuesField)
-	f.valuesFields = append(f.valuesFields, valuesField)
+	p.form.AddFormItem(valuesField)
+	p.valuesFields = append(p.valuesFields, valuesField)
 }
 
-func (f *SetupForm) addItemType(itemType string, values ...string) {
-	for i := 0; i < f.itemCount; i++ {
-		if len(f.itemTypeFields[i].GetText()) == 0 && len(f.valuesFields[i].GetText()) == 0 {
-			f.itemTypeFields[i].SetText(itemType)
-			f.valuesFields[i].SetText(strings.Join(values, ", "))
+func (p *SetupPage) addItemType(itemType string, values ...string) {
+	for i := 0; i < p.itemCount; i++ {
+		if len(p.itemTypeFields[i].GetText()) == 0 && len(p.valuesFields[i].GetText()) == 0 {
+			p.itemTypeFields[i].SetText(itemType)
+			p.valuesFields[i].SetText(strings.Join(values, ", "))
 			return
 		}
 	}
 
-	f.addItemTypeField()
-	f.itemTypeFields[f.itemCount-1].SetText(itemType)
-	f.valuesFields[f.itemCount-1].SetText(strings.Join(values, ", "))
+	p.addItemTypeField()
+	p.itemTypeFields[p.itemCount-1].SetText(itemType)
+	p.valuesFields[p.itemCount-1].SetText(strings.Join(values, ", "))
 }
 
 // AddItemType adds a new item type field with the provided values or uses an existing empty one
-func (f *SetupForm) AddItemType(itemType string, values ...string) {
-	f.addItemType(itemType, values...)
-	f.Save()
+func (p *SetupPage) AddItemType(itemType string, values ...string) {
+	p.addItemType(itemType, values...)
+	p.Save()
 }
 
 // SetSaveFunc sets a function that gets called when data is saved
-func (f *SetupForm) SetSaveFunc(saveFunc func(riddle.Setup)) {
-	f.saveFunc = saveFunc
+func (p *SetupPage) SetSaveFunc(saveFunc func(riddle.Setup)) {
+	p.saveFunc = saveFunc
 }
 
 // GetSetup returns the current setup
-func (f *SetupForm) GetSetup() (riddle.Setup, error) {
+func (p *SetupPage) GetSetup() (riddle.Setup, error) {
 	var setup = make(riddle.Setup)
 
-	for i := 0; i < f.itemCount; i++ {
-		itemType := f.itemTypeFields[i].GetText()
+	for i := 0; i < p.itemCount; i++ {
+		itemType := p.itemTypeFields[i].GetText()
 		if len(itemType) == 0 {
-			if len(f.valuesFields[i].GetText()) > 0 {
+			if len(p.valuesFields[i].GetText()) > 0 {
 				return nil, fmt.Errorf("Cannot have values without item type")
 			}
 
 			continue
 		}
 
-		values := strings.Split(f.valuesFields[i].GetText(), ",")
+		values := strings.Split(p.valuesFields[i].GetText(), ",")
 		var trimmedValues []string
 		for _, value := range values {
 			trimmedValue := strings.Trim(value, " ")
@@ -118,38 +118,38 @@ func (f *SetupForm) GetSetup() (riddle.Setup, error) {
 }
 
 // SetSetup resets the form and inserts the values from the provided setup
-func (f *SetupForm) SetSetup(setup riddle.Setup) {
-	f.Reset()
+func (p *SetupPage) SetSetup(setup riddle.Setup) {
+	p.Reset()
 	for itemType, values := range setup {
-		f.addItemType(itemType, values...)
+		p.addItemType(itemType, values...)
 	}
-	f.Save()
+	p.Save()
 }
 
 // Save collects all the form data and passes it to the save function
-func (f *SetupForm) Save() {
-	setup, err := f.GetSetup()
+func (p *SetupPage) Save() {
+	setup, err := p.GetSetup()
 	if err != nil {
-		f.modal.ModalMessage(fmt.Sprint(err))
+		p.modal.ModalMessage(fmt.Sprint(err))
 		return
 	}
 
-	if f.saveFunc != nil {
-		f.saveFunc(setup)
+	if p.saveFunc != nil {
+		p.saveFunc(setup)
 	}
 }
 
 // Reset resets the form to its initial state
-func (f *SetupForm) Reset() {
-	f.form.SetFocus(0)
-	f.itemCount = 0
-	f.form.Clear(false)
-	f.itemTypeFields = nil
-	f.valuesFields = nil
-	f.addItemTypeField()
-	f.addItemTypeField()
+func (p *SetupPage) Reset() {
+	p.form.SetFocus(0)
+	p.itemCount = 0
+	p.form.Clear(false)
+	p.itemTypeFields = nil
+	p.valuesFields = nil
+	p.addItemTypeField()
+	p.addItemTypeField()
 
-	if f.saveFunc != nil {
-		f.saveFunc(nil)
+	if p.saveFunc != nil {
+		p.saveFunc(nil)
 	}
 }

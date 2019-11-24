@@ -7,9 +7,9 @@ import (
 	"github.com/rivo/tview"
 )
 
-// SolverDebugTree shows solver internals
-type SolverDebugTree struct {
-	tview.Primitive
+// SolverDebugPage shows solver internals
+type SolverDebugPage struct {
+	Page
 	tree  *tview.TreeView
 	root  *tview.TreeNode
 	setup riddle.Setup
@@ -19,35 +19,37 @@ type SolverDebugTree struct {
 }
 
 // NewSolverDebugTree returns a new SolverDebugTree
-func NewSolverDebugTree(modal ModalHandler) *SolverDebugTree {
+func NewSolverDebugTree(modal ModalHandler) *SolverDebugPage {
 	root := tview.NewTreeNode("")
 	tree := tview.NewTreeView().
 		SetRoot(root).
 		SetCurrentNode(root)
 
-	return &SolverDebugTree{
-		Primitive: tree,
-		tree:      tree,
-		root:      root,
-		dirty:     true,
-		modal:     modal,
+	p := &SolverDebugPage{
+		Page:  NewPage(tview.NewFrame(tree), "Debug"),
+		tree:  tree,
+		root:  root,
+		dirty: true,
+		modal: modal,
 	}
+	p.Page.SetSelectFunc(p.Update)
+	return p
 }
 
 // Update updates the results based on the latest setup and rules
-func (t *SolverDebugTree) Update() {
-	if !t.dirty {
+func (p *SolverDebugPage) Update() {
+	if !p.dirty {
 		return
 	}
 
-	solver := riddle.NewSolver(t.setup, t.rules)
+	solver := riddle.NewSolver(p.setup, p.rules)
 	steps, err := solver.Solve(solver.GuessPrimaryItemType())
 	if err != nil {
-		t.modal.ModalMessage(fmt.Sprint(err))
+		p.modal.ModalMessage(fmt.Sprint(err))
 	}
 
-	t.dirty = false
-	t.root.
+	p.dirty = false
+	p.root.
 		SetText(fmt.Sprintf("Solver internals (%d steps)", steps)).
 		ClearChildren()
 
@@ -58,21 +60,21 @@ func (t *SolverDebugTree) Update() {
 			resultNode := tview.NewTreeNode(text)
 			node.AddChild(resultNode)
 		}
-		t.root.AddChild(node)
+		p.root.AddChild(node)
 	}
 
-	t.tree.SetSelectedFunc(func(node *tview.TreeNode) {
+	p.tree.SetSelectedFunc(func(node *tview.TreeNode) {
 		node.SetExpanded(!node.IsExpanded())
 	})
 }
 
 // HandleSetup updates the inner stored setup
-func (t *SolverDebugTree) HandleSetup(setup riddle.Setup) {
-	t.setup = setup
+func (p *SolverDebugPage) HandleSetup(setup riddle.Setup) {
+	p.setup = setup
 }
 
 // HandleRules updates the inner stored rules
-func (t *SolverDebugTree) HandleRules(rules []riddle.Rule) {
-	t.rules = rules
-	t.dirty = true
+func (p *SolverDebugPage) HandleRules(rules []riddle.Rule) {
+	p.rules = rules
+	p.dirty = true
 }

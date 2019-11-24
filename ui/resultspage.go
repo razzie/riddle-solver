@@ -7,9 +7,9 @@ import (
 	"github.com/rivo/tview"
 )
 
-// ResultsTree is a UI tree element that lets the user browse the riddle results
-type ResultsTree struct {
-	tview.Primitive
+// ResultsPage is a UI tree element that lets the user browse the riddle results
+type ResultsPage struct {
+	Page
 	tree  *tview.TreeView
 	root  *tview.TreeNode
 	setup riddle.Setup
@@ -19,49 +19,51 @@ type ResultsTree struct {
 }
 
 // NewResultsTree returns a new ResultsTree
-func NewResultsTree(modal ModalHandler) *ResultsTree {
+func NewResultsTree(modal ModalHandler) *ResultsPage {
 	root := tview.NewTreeNode("Results")
 	tree := tview.NewTreeView().
 		SetRoot(root).
 		SetCurrentNode(root)
 
-	return &ResultsTree{
-		Primitive: tree,
-		tree:      tree,
-		root:      root,
-		dirty:     true,
-		modal:     modal,
+	p := &ResultsPage{
+		Page:  NewPage(tview.NewFrame(tree), "Results"),
+		tree:  tree,
+		root:  root,
+		dirty: true,
+		modal: modal,
 	}
+	p.Page.SetSelectFunc(p.Update)
+	return p
 }
 
 // Update updates the results based on the latest setup and rules
-func (t *ResultsTree) Update() {
-	if !t.dirty {
+func (p *ResultsPage) Update() {
+	if !p.dirty {
 		return
 	}
 
-	solver := riddle.NewSolver(t.setup, t.rules)
+	solver := riddle.NewSolver(p.setup, p.rules)
 	_, err := solver.Solve(solver.GuessPrimaryItemType())
 	if err != nil {
-		t.modal.ModalMessage(fmt.Sprint(err))
+		p.modal.ModalMessage(fmt.Sprint(err))
 	} else if solver.IsSolved() {
-		t.modal.ModalMessage("Riddle solved")
+		p.modal.ModalMessage("Riddle solved")
 	}
 
-	t.dirty = false
-	t.root.ClearChildren()
+	p.dirty = false
+	p.root.ClearChildren()
 
-	for itemType, values := range t.setup {
+	for itemType, values := range p.setup {
 		itemTypeNode := tview.NewTreeNode(itemType).SetExpanded(false)
 		for _, val := range values {
 			item := riddle.Item(fmt.Sprintf("%s:%s", itemType, val))
 			valueNode := tview.NewTreeNode(val).SetReference(item)
 			itemTypeNode.AddChild(valueNode)
 		}
-		t.root.AddChild(itemTypeNode)
+		p.root.AddChild(itemTypeNode)
 	}
 
-	t.tree.SetSelectedFunc(func(node *tview.TreeNode) {
+	p.tree.SetSelectedFunc(func(node *tview.TreeNode) {
 		children := node.GetChildren()
 		if len(children) == 0 {
 			reference := node.GetReference()
@@ -84,12 +86,12 @@ func (t *ResultsTree) Update() {
 }
 
 // HandleSetup updates the inner stored setup
-func (t *ResultsTree) HandleSetup(setup riddle.Setup) {
-	t.setup = setup
+func (p *ResultsPage) HandleSetup(setup riddle.Setup) {
+	p.setup = setup
 }
 
 // HandleRules updates the inner stored rules
-func (t *ResultsTree) HandleRules(rules []riddle.Rule) {
-	t.rules = rules
-	t.dirty = true
+func (p *ResultsPage) HandleRules(rules []riddle.Rule) {
+	p.rules = rules
+	p.dirty = true
 }
