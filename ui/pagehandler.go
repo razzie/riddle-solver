@@ -30,18 +30,13 @@ func NewPageHandler() *PageHandler {
 		AddItem(pages, 0, 0, 1, 1, 0, 0, true).
 		AddItem(footer, 1, 0, 1, 1, 1, 0, false)
 
-	modalMsg := tview.NewModal().
-		AddButtons([]string{"OK"}).
-		SetDoneFunc(func(buttonIndex int, buttonLabel string) {
-			pages.HidePage("modal_msg")
-		})
+	modalMsg := tview.NewModal().AddButtons([]string{"OK"})
 	pages.AddPage("modal_msg", modalMsg, false, false)
 
-	modalYesNo := tview.NewModal().
-		AddButtons([]string{"Yes", "No"})
+	modalYesNo := tview.NewModal().AddButtons([]string{"Yes", "No"})
 	pages.AddPage("modal_yes_no", modalYesNo, false, false)
 
-	return &PageHandler{
+	ph := &PageHandler{
 		Primitive:   grid,
 		Quit:        make(chan bool),
 		pageHandler: pages,
@@ -49,6 +44,12 @@ func NewPageHandler() *PageHandler {
 		modalMsg:    modalMsg,
 		modalYesNo:  modalYesNo,
 	}
+	ph.modalMsg.SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+		pages.HidePage("modal_msg")
+		ph.modalActive = false
+	})
+
+	return ph
 }
 
 // AddPage adds a publicly listed page to the frame
