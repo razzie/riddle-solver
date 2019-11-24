@@ -5,7 +5,6 @@ import (
 
 	"github.com/razzie/riddle-solver/riddle"
 	"github.com/razzie/riddle-solver/ui"
-	"github.com/rivo/tview"
 )
 
 func main() {
@@ -26,30 +25,23 @@ func main() {
 		t.Apply()
 	}
 
-	root := ui.NewRootElement(*debug)
-	app := tview.NewApplication().
-		SetInputCapture(root.InputCapture()).
-		SetRoot(root, true)
+	app := ui.NewApp(*debug)
 
 	if *demo {
-		root.SetRiddle(riddle.EinsteinRiddle)
+		app.SetRiddle(riddle.EinsteinRiddle)
 	} else {
 		r, err := riddle.LoadRiddleFromFile(*load)
 		if err == nil {
-			root.SetRiddle(r)
+			app.SetRiddle(r)
 		}
 	}
 
-	go func() {
-		<-root.Quit
-		r, err := root.GetRiddle()
-		if err == nil {
-			r.SaveToFile("autosave.json")
-		}
-		app.Stop()
-	}()
-
-	if err := app.SetFocus(root).Run(); err != nil {
+	if err := app.Run(); err != nil {
 		panic(err)
+	}
+
+	r, err := app.GetRiddle()
+	if err == nil {
+		r.SaveToFile("autosave.json")
 	}
 }
