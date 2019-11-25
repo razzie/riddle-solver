@@ -34,6 +34,9 @@ func NewApp(debug bool) *App {
 	results := NewResultsTree(pages)
 	pages.AddPage(results)
 
+	load := NewLoadPage(pages)
+	pages.AddPage(load)
+
 	solverdebug := NewSolverDebugTree(pages)
 	if debug {
 		pages.AddPage(solverdebug)
@@ -61,17 +64,20 @@ func NewApp(debug bool) *App {
 		solverdebug.HandleRules(rules)
 	})
 
-	app := tview.NewApplication().
+	subapp := tview.NewApplication().
 		SetInputCapture(pages.InputCapture()).
 		SetRoot(pages, true)
 
-	return &App{
+	app := &App{
 		PageHandler: pages,
 		SetupForm:   setup,
 		RuleForm:    addRule,
 		RuleList:    rules,
-		app:         app,
+		app:         subapp,
 	}
+	load.SetRiddleSetter(app.SetRiddle)
+
+	return app
 }
 
 // Run runs the user interface
