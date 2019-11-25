@@ -1,46 +1,43 @@
-package ui
+package main
 
 import (
 	"github.com/razzie/riddle-solver/riddle"
+	"github.com/razzie/riddle-solver/ui"
 	"github.com/rivo/tview"
 )
 
 // App handles the user interface
 type App struct {
-	*PageHandler
-	SetupForm *SetupPage
-	RuleForm  *AddRulePage
-	RuleList  *RulesPage
+	*ui.PageHandler
+	SetupForm *ui.SetupPage
+	RuleForm  *ui.AddRulePage
+	RuleList  *ui.RulesPage
 	app       *tview.Application
 }
 
 // NewApp returns a new App
 func NewApp(debug bool) *App {
-	if currentTheme == nil {
-		LightTheme.Apply()
-	}
+	pages := ui.NewPageHandler()
 
-	pages := NewPageHandler()
-
-	setup := NewSetupForm(pages)
+	setup := ui.NewSetupForm(pages)
 	pages.AddPage(setup)
 
-	addRule := NewRuleForm(pages)
+	addRule := ui.NewRuleForm(pages)
 	pages.AddPage(addRule)
 
-	rules := NewRuleList(pages)
+	rules := ui.NewRuleList(pages)
 	pages.AddPage(rules)
 
-	results := NewResultsTree(pages)
+	results := ui.NewResultsTree(pages)
 	pages.AddPage(results)
 
-	load := NewLoadPage(pages)
+	load := ui.NewLoadPage(pages)
 	pages.AddPage(load)
 
-	save := NewSavePage(pages)
+	save := ui.NewSavePage(pages)
 	pages.AddPage(save)
 
-	solverdebug := NewSolverDebugTree(pages)
+	solverdebug := ui.NewSolverDebugTree(pages)
 	if debug {
 		pages.AddPage(solverdebug)
 	}
@@ -93,11 +90,11 @@ func NewApp(debug bool) *App {
 func (app *App) Run() error {
 	go func() {
 		<-app.Quit
-		app.app.Stop()
 		app.autosave()
+		app.app.Stop()
 	}()
 
-	SetConsoleTitle("Razzie's Riddle Solver")
+	ui.SetConsoleTitle("Razzie's Riddle Solver")
 
 	return app.app.SetFocus(app).Run()
 }
@@ -136,7 +133,7 @@ func (app *App) SetRiddle(r *riddle.Riddle) error {
 
 func (app *App) autosave() {
 	r, err := app.GetRiddle()
-	if err == nil {
+	if err == nil && len(r.Setup) > 0 {
 		r.SaveToFile("riddles/autosave.json")
 	}
 }

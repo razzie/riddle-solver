@@ -21,7 +21,7 @@ func main() {
 		panic(fmt.Errorf("Theme not found: %s", *theme))
 	}
 
-	app := ui.NewApp(*debug)
+	app := NewApp(*debug)
 
 	if *demo {
 		app.SetRiddle(riddle.NewEinsteinRiddle())
