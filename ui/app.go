@@ -50,7 +50,7 @@ func NewApp(debug bool) *App {
 		rules.HandleSetup(setup)
 		results.HandleSetup(setup)
 		solverdebug.HandleSetup(setup)
-		if setup != nil {
+		if len(setup) > 0 {
 			pages.SwitchToPage(1)
 		}
 	})
@@ -81,6 +81,11 @@ func NewApp(debug bool) *App {
 	load.SetRiddleSetter(app.SetRiddle)
 	save.SetRiddleGetter(app.GetRiddle)
 
+	r, err := riddle.LoadRiddleFromFile("riddles/autosave.json")
+	if err == nil {
+		app.SetRiddle(r)
+	}
+
 	return app
 }
 
@@ -89,6 +94,7 @@ func (app *App) Run() error {
 	go func() {
 		<-app.Quit
 		app.app.Stop()
+		app.autosave()
 	}()
 
 	SetConsoleTitle("Razzie's Riddle Solver")
@@ -116,8 +122,21 @@ func (app *App) SetRiddle(r *riddle.Riddle) error {
 		return err
 	}
 
+	app.autosave()
+
 	app.SetupForm.SetSetup(r.Setup)
 	app.RuleList.SetRules(r.Rules)
-	app.SwitchToPage(2)
+	if len(r.Rules) > 0 {
+		app.SwitchToPage(2)
+	} else {
+		app.SwitchToPage(0)
+	}
 	return nil
+}
+
+func (app *App) autosave() {
+	r, err := app.GetRiddle()
+	if err == nil {
+		r.SaveToFile("riddles/autosave.json")
+	}
 }
