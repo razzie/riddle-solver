@@ -105,7 +105,7 @@ func (r *Riddle) leftneighbor(itemA, itemB string) {
 		ItemA:             Item(itemA),
 		ItemB:             Item(itemB),
 		Relation:          RelAssociated,
-		ConditionItemType: "house",
+		ConditionItemType: r.PrimaryItemType,
 		Condition:         "A == B - 1",
 		IsReversible:      false,
 	})
@@ -113,7 +113,7 @@ func (r *Riddle) leftneighbor(itemA, itemB string) {
 		ItemA:             Item(itemB),
 		ItemB:             Item(itemA),
 		Relation:          RelAssociated,
-		ConditionItemType: "house",
+		ConditionItemType: r.PrimaryItemType,
 		Condition:         "A == B + 1",
 		IsReversible:      false,
 	})
@@ -124,13 +124,13 @@ func (r *Riddle) anyneighbor(itemA, itemB string) {
 		ItemA:             Item(itemA),
 		ItemB:             Item(itemB),
 		Relation:          RelAssociated,
-		ConditionItemType: "house",
+		ConditionItemType: r.PrimaryItemType,
 		Condition:         "(A == B - 1) || (A == B + 1)",
 		IsReversible:      true,
 	})
 }
 
-// NewEintsteinRiddle returns Einstein's 5 house riddle
+// NewEinsteinRiddle returns Einstein's 5 house riddle
 func NewEinsteinRiddle() *Riddle {
 	r := NewRiddle()
 
@@ -182,7 +182,7 @@ func NewJindoshRiddle() *Riddle {
 
 	r.PrimaryItemType = "seat"
 	r.items("seat", "1", "2", "3", "4", "5")
-	r.items("name", "Winslow", "Marcolla", "Natsiou", "Finch")
+	r.items("name", "Winslow", "Marcolla", "Contee", "Natsiou", "Finch")
 	r.items("color", "purple", "blue", "red", "green", "white")
 	r.items("drink", "whiskey", "beer", "absinthe", "rum", "wine")
 	r.items("jewel", "SnuffTin", "WarMedal", "Ring", "BirdPendant", "Diamond")
