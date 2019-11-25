@@ -81,6 +81,8 @@ func (app *App) Run() error {
 		app.app.Stop()
 	}()
 
+	SetConsoleTitle("Razzie's Riddle Solver")
+
 	return app.app.SetFocus(app).Run()
 }
 
