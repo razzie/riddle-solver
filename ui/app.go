@@ -101,8 +101,13 @@ func (app *App) GetRiddle() (*riddle.Riddle, error) {
 }
 
 // SetRiddle sets the current riddle
-func (app *App) SetRiddle(r *riddle.Riddle) {
+func (app *App) SetRiddle(r *riddle.Riddle) error {
+	if err := r.Check(); err != nil {
+		return err
+	}
+
 	app.SetupForm.SetSetup(r.Setup)
 	app.RuleList.SetRules(r.Rules)
 	app.SwitchToPage(2)
+	return nil
 }

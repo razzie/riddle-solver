@@ -130,7 +130,7 @@ func (p *SetupPage) SetSetup(setup riddle.Setup) {
 func (p *SetupPage) Save() {
 	setup, err := p.GetSetup()
 	if err != nil {
-		p.modal.ModalMessage(fmt.Sprint(err))
+		p.modal.ModalMessage(err.Error())
 		return
 	}
 

@@ -1,8 +1,6 @@
 package ui
 
 import (
-	"fmt"
-
 	"github.com/razzie/riddle-solver/riddle"
 	"github.com/rivo/tview"
 )
@@ -119,7 +117,7 @@ func (p *AddRulePage) Save() {
 	rule.IsReversible = p.conditionReversible.IsChecked()
 
 	if err := rule.Check(p.setup); err != nil {
-		p.modal.ModalMessage(fmt.Sprint(err))
+		p.modal.ModalMessage(err.Error())
 		return
 	}
 

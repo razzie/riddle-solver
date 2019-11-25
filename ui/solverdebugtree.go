@@ -45,7 +45,7 @@ func (p *SolverDebugPage) Update() {
 	solver := riddle.NewSolver(p.setup, p.rules)
 	steps, err := solver.Solve(solver.GuessPrimaryItemType())
 	if err != nil {
-		p.modal.ModalMessage(fmt.Sprint(err))
+		p.modal.ModalMessage(err.Error())
 	}
 
 	p.dirty = false

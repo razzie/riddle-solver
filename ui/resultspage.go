@@ -45,7 +45,7 @@ func (p *ResultsPage) Update() {
 	solver := riddle.NewSolver(p.setup, p.rules)
 	_, err := solver.Solve(solver.GuessPrimaryItemType())
 	if err != nil {
-		p.modal.ModalMessage(fmt.Sprint(err))
+		p.modal.ModalMessage(err.Error())
 	} else if solver.IsSolved() {
 		p.modal.ModalMessage("Riddle solved")
 	}
