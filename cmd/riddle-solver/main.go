@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 
 	"github.com/razzie/riddle-solver/riddle"
 	"github.com/razzie/riddle-solver/ui"
@@ -16,13 +17,10 @@ func main() {
 	load := flag.String("load", "autosave.json", "Specify a riddle JSON file to load")
 	flag.Parse()
 
-	themes := map[string]*ui.Theme{
-		"light": &ui.LightTheme,
-		"dark":  &ui.DarkTheme,
-	}
-
-	if t, found := themes[*theme]; found {
+	if t, ok := ui.Themes[*theme]; ok {
 		t.Apply()
+	} else {
+		panic(fmt.Errorf("Theme not found: %s", *theme))
 	}
 
 	app := ui.NewApp(*debug)

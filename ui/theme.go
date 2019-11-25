@@ -36,6 +36,12 @@ func (theme *Theme) Apply() {
 
 var currentTheme *Theme
 
+// Themes contains the string-to-theme map
+var Themes = map[string]*Theme{
+	"dark":  &DarkTheme,
+	"light": &LightTheme,
+}
+
 // DarkTheme represents a dark theme
 var DarkTheme = Theme{
 	TextColor:                 "white",
