@@ -9,7 +9,6 @@ import (
 )
 
 func main() {
-	demo := flag.Bool("demo", false, "Einstein's 5 house riddle demo mode")
 	theme := flag.String("theme", "light", "Specify light or dark theme")
 	debug := flag.Bool("debug", false, "Enable an additional debug page")
 	load := flag.String("load", "", "Specify a riddle JSON file to load")
@@ -23,9 +22,7 @@ func main() {
 
 	app := NewApp(*debug)
 
-	if *demo {
-		app.SetRiddle(riddle.NewEinsteinRiddle())
-	} else if len(*load) > 0 {
+	if len(*load) > 0 {
 		r, err := riddle.LoadRiddleFromFile(*load)
 		if err == nil {
 			app.SetRiddle(r)
