@@ -6,12 +6,6 @@ import (
 	"io/ioutil"
 )
 
-// Demo riddles
-var (
-	EinsteinRiddle *Riddle
-	JindoshRiddle  *Riddle
-)
-
 // Riddle contains the setup and rules of the riddle
 type Riddle struct {
 	Setup           Setup
@@ -136,7 +130,8 @@ func (r *Riddle) anyneighbor(itemA, itemB string) {
 	})
 }
 
-func newEinsteinRiddle() *Riddle {
+// NewEintsteinRiddle returns Einstein's 5 house riddle
+func NewEinsteinRiddle() *Riddle {
 	r := NewRiddle()
 
 	r.PrimaryItemType = "house"
@@ -181,7 +176,8 @@ func newEinsteinRiddle() *Riddle {
 	return r
 }
 
-func newJindoshRiddle() *Riddle {
+// NewJindoshRiddle returns the Jindosh riddle
+func NewJindoshRiddle() *Riddle {
 	r := NewRiddle()
 
 	r.PrimaryItemType = "seat"
@@ -224,9 +220,4 @@ func newJindoshRiddle() *Riddle {
 	r.hint("name:Natsiou", "place:Baleton")
 
 	return r
-}
-
-func init() {
-	EinsteinRiddle = newEinsteinRiddle()
-	JindoshRiddle = newJindoshRiddle()
 }

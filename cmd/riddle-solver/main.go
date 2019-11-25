@@ -28,7 +28,7 @@ func main() {
 	app := ui.NewApp(*debug)
 
 	if *demo {
-		app.SetRiddle(riddle.EinsteinRiddle)
+		app.SetRiddle(riddle.NewEinsteinRiddle())
 	} else {
 		r, err := riddle.LoadRiddleFromFile(*load)
 		if err == nil {
