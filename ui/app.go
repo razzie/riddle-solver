@@ -37,6 +37,9 @@ func NewApp(debug bool) *App {
 	load := NewLoadPage(pages)
 	pages.AddPage(load)
 
+	save := NewSavePage(pages)
+	pages.AddPage(save)
+
 	solverdebug := NewSolverDebugTree(pages)
 	if debug {
 		pages.AddPage(solverdebug)
@@ -76,6 +79,7 @@ func NewApp(debug bool) *App {
 		app:         subapp,
 	}
 	load.SetRiddleSetter(app.SetRiddle)
+	save.SetRiddleGetter(app.GetRiddle)
 
 	return app
 }
