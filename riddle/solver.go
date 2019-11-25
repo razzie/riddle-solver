@@ -55,7 +55,10 @@ func (solver *Solver) Solve(primaryItemType string) (steps int, err error) {
 		return 0, fmt.Errorf("There are no rules")
 	}
 
-	primaryItemTypeValues, _ := solver.setup[primaryItemType]
+	primaryItemTypeValues, ok := solver.setup[primaryItemType]
+	if !ok {
+		return 0, fmt.Errorf("Primary item type %q is invalid", primaryItemType)
+	}
 	for i, entry := range solver.Entries {
 		entry[primaryItemType] = []string{primaryItemTypeValues[i]}
 	}
