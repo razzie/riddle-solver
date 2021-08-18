@@ -1,5 +1,5 @@
 //+build linux
-package ui
+package tui
 
 import (
 	"fmt"

@@ -4,8 +4,8 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/razzie/riddle-solver/riddle"
-	"github.com/razzie/riddle-solver/ui"
+	"github.com/razzie/riddle-solver/pkg/riddle"
+	"github.com/razzie/riddle-solver/pkg/tui"
 )
 
 func main() {
@@ -14,7 +14,7 @@ func main() {
 	load := flag.String("load", "", "Specify a riddle JSON file to load")
 	flag.Parse()
 
-	if t, ok := ui.Themes[*theme]; ok {
+	if t, ok := tui.Themes[*theme]; ok {
 		t.Apply()
 	} else {
 		panic(fmt.Errorf("Theme not found: %s", *theme))

@@ -1,19 +1,21 @@
 # github.com/antlr/antlr4 v0.0.0-20191011202612-ad2bd05285ca
 github.com/antlr/antlr4/runtime/Go/antlr
 # github.com/antonmedv/expr v1.3.1
+## explicit
 github.com/antonmedv/expr
+github.com/antonmedv/expr/ast
 github.com/antonmedv/expr/checker
 github.com/antonmedv/expr/compiler
 github.com/antonmedv/expr/internal/conf
+github.com/antonmedv/expr/internal/file
 github.com/antonmedv/expr/optimizer
 github.com/antonmedv/expr/parser
-github.com/antonmedv/expr/vm
-github.com/antonmedv/expr/ast
-github.com/antonmedv/expr/internal/file
 github.com/antonmedv/expr/parser/gen
+github.com/antonmedv/expr/vm
 # github.com/gdamore/encoding v1.0.0
 github.com/gdamore/encoding
 # github.com/gdamore/tcell v1.1.2
+## explicit
 github.com/gdamore/tcell
 github.com/gdamore/tcell/terminfo
 # github.com/lucasb-eyer/go-colorful v1.0.2
@@ -21,11 +23,12 @@ github.com/lucasb-eyer/go-colorful
 # github.com/mattn/go-runewidth v0.0.4
 github.com/mattn/go-runewidth
 # github.com/rivo/tview v0.0.0-20190829161255-f8bc69b90341
+## explicit
 github.com/rivo/tview
 # github.com/rivo/uniseg v0.0.0-20190513083848-b9f5b9457d44
 github.com/rivo/uniseg
 # golang.org/x/text v0.3.2
 golang.org/x/text/encoding
-golang.org/x/text/transform
 golang.org/x/text/encoding/internal/identifier
+golang.org/x/text/transform
 golang.org/x/text/width

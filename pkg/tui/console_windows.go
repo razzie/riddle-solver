@@ -1,5 +1,5 @@
 //+build windows
-package ui
+package tui
 
 import (
 	"syscall"

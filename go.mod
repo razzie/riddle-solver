@@ -1,6 +1,6 @@
 module github.com/razzie/riddle-solver
 
-go 1.12
+go 1.16
 
 require (
 	github.com/antonmedv/expr v1.3.1

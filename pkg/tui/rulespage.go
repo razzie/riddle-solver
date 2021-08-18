@@ -1,10 +1,10 @@
-package ui
+package tui
 
 import (
 	"fmt"
 
 	"github.com/gdamore/tcell"
-	"github.com/razzie/riddle-solver/riddle"
+	"github.com/razzie/riddle-solver/pkg/riddle"
 	"github.com/rivo/tview"
 )
 

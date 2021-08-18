@@ -1,4 +1,4 @@
-package ui
+package tui
 
 // ModalHandler is an interface that handles modal dialogs
 type ModalHandler interface {

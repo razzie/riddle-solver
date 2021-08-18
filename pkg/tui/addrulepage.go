@@ -1,7 +1,7 @@
-package ui
+package tui
 
 import (
-	"github.com/razzie/riddle-solver/riddle"
+	"github.com/razzie/riddle-solver/pkg/riddle"
 	"github.com/rivo/tview"
 )
 

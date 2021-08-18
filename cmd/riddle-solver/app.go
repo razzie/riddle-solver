@@ -1,43 +1,43 @@
 package main
 
 import (
-	"github.com/razzie/riddle-solver/riddle"
-	"github.com/razzie/riddle-solver/ui"
+	"github.com/razzie/riddle-solver/pkg/riddle"
+	"github.com/razzie/riddle-solver/pkg/tui"
 	"github.com/rivo/tview"
 )
 
 // App handles the user interface
 type App struct {
-	*ui.PageHandler
-	SetupForm *ui.SetupPage
-	RuleForm  *ui.AddRulePage
-	RuleList  *ui.RulesPage
+	*tui.PageHandler
+	SetupForm *tui.SetupPage
+	RuleForm  *tui.AddRulePage
+	RuleList  *tui.RulesPage
 	app       *tview.Application
 }
 
 // NewApp returns a new App
 func NewApp(debug bool) *App {
-	pages := ui.NewPageHandler()
+	pages := tui.NewPageHandler()
 
-	setup := ui.NewSetupForm(pages)
+	setup := tui.NewSetupForm(pages)
 	pages.AddPage(setup)
 
-	addRule := ui.NewRuleForm(pages)
+	addRule := tui.NewRuleForm(pages)
 	pages.AddPage(addRule)
 
-	rules := ui.NewRuleList(pages)
+	rules := tui.NewRuleList(pages)
 	pages.AddPage(rules)
 
-	results := ui.NewResultsTree(pages)
+	results := tui.NewResultsTree(pages)
 	pages.AddPage(results)
 
-	load := ui.NewLoadPage(pages)
+	load := tui.NewLoadPage(pages)
 	pages.AddPage(load)
 
-	save := ui.NewSavePage(pages)
+	save := tui.NewSavePage(pages)
 	pages.AddPage(save)
 
-	solverdebug := ui.NewSolverDebugTree(pages)
+	solverdebug := tui.NewSolverDebugTree(pages)
 	if debug {
 		pages.AddPage(solverdebug)
 	}
@@ -94,7 +94,7 @@ func (app *App) Run() error {
 		app.app.Stop()
 	}()
 
-	ui.SetConsoleTitle("Razzie's Riddle Solver")
+	tui.SetConsoleTitle("Razzie's Riddle Solver")
 
 	return app.app.SetFocus(app).Run()
 }
