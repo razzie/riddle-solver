@@ -2,34 +2,52 @@ package main
 
 import (
 	"flag"
-	"fmt"
+	"log"
 
 	"github.com/razzie/riddle-solver/pkg/riddle"
-	"github.com/razzie/riddle-solver/pkg/tui"
 )
 
-func main() {
-	theme := flag.String("theme", "light", "Specify light or dark theme")
-	debug := flag.Bool("debug", false, "Enable an additional debug page")
-	load := flag.String("load", "", "Specify a riddle JSON file to load")
-	flag.Parse()
+var (
+	theme      string
+	riddleFile string
+	debug      bool
+	nogui      bool
+)
 
-	if t, ok := tui.Themes[*theme]; ok {
-		t.Apply()
+func init() {
+	flag.StringVar(&theme, "theme", "light", "Specify light or dark theme")
+	flag.StringVar(&riddleFile, "load", "", "Specify a riddle JSON file to load")
+	flag.BoolVar(&debug, "debug", false, "Enable an additional debug page")
+	flag.BoolVar(&nogui, "nogui", false, "Disable GUI and use terminal UI instead")
+	flag.Parse()
+}
+
+func tryLoadRiddle() *riddle.Riddle {
+	if len(riddleFile) > 0 {
+		r, err := riddle.LoadRiddleFromFile(riddleFile)
+		if err != nil {
+			log.Fatalf("failed to load riddle: %v", err)
+		}
+		return r
+	}
+	return nil
+}
+
+func main() {
+	var app App
+	r := tryLoadRiddle()
+
+	if nogui {
+		app = getTuiApp(theme, debug)
 	} else {
-		panic(fmt.Errorf("Theme not found: %s", *theme))
+		app = getGuiApp(theme, debug)
 	}
 
-	app := NewApp(*debug)
-
-	if len(*load) > 0 {
-		r, err := riddle.LoadRiddleFromFile(*load)
-		if err == nil {
-			app.SetRiddle(r)
-		}
+	if r != nil {
+		app.SetRiddle(r)
 	}
 
 	if err := app.Run(); err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 }
