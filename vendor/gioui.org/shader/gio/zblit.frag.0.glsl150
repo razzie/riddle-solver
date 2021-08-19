@@ -1,0 +1,15 @@
+#version 150
+
+layout(std140) uniform Color
+{
+    vec4 color;
+} _color;
+
+out vec4 fragColor;
+in vec2 vUV;
+
+void main()
+{
+    fragColor = _color.color;
+}
+

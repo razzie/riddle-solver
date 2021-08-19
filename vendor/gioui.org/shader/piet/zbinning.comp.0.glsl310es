@@ -1,0 +1,319 @@
+#version 310 es
+layout(local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
+
+struct Alloc
+{
+    uint offset;
+};
+
+struct MallocResult
+{
+    Alloc alloc;
+    bool failed;
+};
+
+struct AnnoEndClipRef
+{
+    uint offset;
+};
+
+struct AnnoEndClip
+{
+    vec4 bbox;
+};
+
+struct AnnotatedRef
+{
+    uint offset;
+};
+
+struct AnnotatedTag
+{
+    uint tag;
+    uint flags;
+};
+
+struct BinInstanceRef
+{
+    uint offset;
+};
+
+struct BinInstance
+{
+    uint element_ix;
+};
+
+struct Config
+{
+    uint n_elements;
+    uint n_pathseg;
+    uint width_in_tiles;
+    uint height_in_tiles;
+    Alloc tile_alloc;
+    Alloc bin_alloc;
+    Alloc ptcl_alloc;
+    Alloc pathseg_alloc;
+    Alloc anno_alloc;
+    Alloc trans_alloc;
+};
+
+layout(binding = 0, std430) buffer Memory
+{
+    uint mem_offset;
+    uint mem_error;
+    uint memory[];
+} _84;
+
+layout(binding = 1, std430) readonly buffer ConfigBuf
+{
+    Config conf;
+} _253;
+
+shared uint bitmaps[4][128];
+shared bool sh_alloc_failed;
+shared uint count[4][128];
+shared Alloc sh_chunk_alloc[128];
+
+bool touch_mem(Alloc alloc, uint offset)
+{
+    return true;
+}
+
+uint read_mem(Alloc alloc, uint offset)
+{
+    Alloc param = alloc;
+    uint param_1 = offset;
+    if (!touch_mem(param, param_1))
+    {
+        return 0u;
+    }
+    uint v = _84.memory[offset];
+    return v;
+}
+
+AnnotatedTag Annotated_tag(Alloc a, AnnotatedRef ref)
+{
+    Alloc param = a;
+    uint param_1 = ref.offset >> uint(2);
+    uint tag_and_flags = read_mem(param, param_1);
+    return AnnotatedTag(tag_and_flags & 65535u, tag_and_flags >> uint(16));
+}
+
+AnnoEndClip AnnoEndClip_read(Alloc a, AnnoEndClipRef ref)
+{
+    uint ix = ref.offset >> uint(2);
+    Alloc param = a;
+    uint param_1 = ix + 0u;
+    uint raw0 = read_mem(param, param_1);
+    Alloc param_2 = a;
+    uint param_3 = ix + 1u;
+    uint raw1 = read_mem(param_2, param_3);
+    Alloc param_4 = a;
+    uint param_5 = ix + 2u;
+    uint raw2 = read_mem(param_4, param_5);
+    Alloc param_6 = a;
+    uint param_7 = ix + 3u;
+    uint raw3 = read_mem(param_6, param_7);
+    AnnoEndClip s;
+    s.bbox = vec4(uintBitsToFloat(raw0), uintBitsToFloat(raw1), uintBitsToFloat(raw2), uintBitsToFloat(raw3));
+    return s;
+}
+
+AnnoEndClip Annotated_EndClip_read(Alloc a, AnnotatedRef ref)
+{
+    Alloc param = a;
+    AnnoEndClipRef param_1 = AnnoEndClipRef(ref.offset + 4u);
+    return AnnoEndClip_read(param, param_1);
+}
+
+Alloc new_alloc(uint offset, uint size, bool mem_ok)
+{
+    Alloc a;
+    a.offset = offset;
+    return a;
+}
+
+MallocResult malloc(uint size)
+{
+    uint _90 = atomicAdd(_84.mem_offset, size);
+    uint offset = _90;
+    MallocResult r;
+    r.failed = (offset + size) > uint(int(uint(_84.memory.length())) * 4);
+    uint param = offset;
+    uint param_1 = size;
+    bool param_2 = !r.failed;
+    r.alloc = new_alloc(param, param_1, param_2);
+    if (r.failed)
+    {
+        uint _119 = atomicMax(_84.mem_error, 1u);
+        return r;
+    }
+    return r;
+}
+
+void write_mem(Alloc alloc, uint offset, uint val)
+{
+    Alloc param = alloc;
+    uint param_1 = offset;
+    if (!touch_mem(param, param_1))
+    {
+        return;
+    }
+    _84.memory[offset] = val;
+}
+
+void BinInstance_write(Alloc a, BinInstanceRef ref, BinInstance s)
+{
+    uint ix = ref.offset >> uint(2);
+    Alloc param = a;
+    uint param_1 = ix + 0u;
+    uint param_2 = s.element_ix;
+    write_mem(param, param_1, param_2);
+}
+
+void main()
+{
+    uint my_n_elements = _253.conf.n_elements;
+    uint my_partition = gl_WorkGroupID.x;
+    for (uint i = 0u; i < 4u; i++)
+    {
+        bitmaps[i][gl_LocalInvocationID.x] = 0u;
+    }
+    if (gl_LocalInvocationID.x == 0u)
+    {
+        sh_alloc_failed = false;
+    }
+    barrier();
+    uint element_ix = (my_partition * 128u) + gl_LocalInvocationID.x;
+    AnnotatedRef ref = AnnotatedRef(_253.conf.anno_alloc.offset + (element_ix * 32u));
+    uint tag = 0u;
+    if (element_ix < my_n_elements)
+    {
+        Alloc param;
+        param.offset = _253.conf.anno_alloc.offset;
+        AnnotatedRef param_1 = ref;
+        tag = Annotated_tag(param, param_1).tag;
+    }
+    int x0 = 0;
+    int y0 = 0;
+    int x1 = 0;
+    int y1 = 0;
+    switch (tag)
+    {
+        case 1u:
+        case 2u:
+        case 3u:
+        case 4u:
+        {
+            Alloc param_2;
+            param_2.offset = _253.conf.anno_alloc.offset;
+            AnnotatedRef param_3 = ref;
+            AnnoEndClip clip = Annotated_EndClip_read(param_2, param_3);
+            x0 = int(floor(clip.bbox.x * 0.001953125));
+            y0 = int(floor(clip.bbox.y * 0.00390625));
+            x1 = int(ceil(clip.bbox.z * 0.001953125));
+            y1 = int(ceil(clip.bbox.w * 0.00390625));
+            break;
+        }
+    }
+    uint width_in_bins = ((_253.conf.width_in_tiles + 16u) - 1u) / 16u;
+    uint height_in_bins = ((_253.conf.height_in_tiles + 8u) - 1u) / 8u;
+    x0 = clamp(x0, 0, int(width_in_bins));
+    x1 = clamp(x1, x0, int(width_in_bins));
+    y0 = clamp(y0, 0, int(height_in_bins));
+    y1 = clamp(y1, y0, int(height_in_bins));
+    if (x0 == x1)
+    {
+        y1 = y0;
+    }
+    int x = x0;
+    int y = y0;
+    uint my_slice = gl_LocalInvocationID.x / 32u;
+    uint my_mask = uint(1 << int(gl_LocalInvocationID.x & 31u));
+    while (y < y1)
+    {
+        uint _438 = atomicOr(bitmaps[my_slice][(uint(y) * width_in_bins) + uint(x)], my_mask);
+        x++;
+        if (x == x1)
+        {
+            x = x0;
+            y++;
+        }
+    }
+    barrier();
+    uint element_count = 0u;
+    for (uint i_1 = 0u; i_1 < 4u; i_1++)
+    {
+        element_count += uint(bitCount(bitmaps[i_1][gl_LocalInvocationID.x]));
+        count[i_1][gl_LocalInvocationID.x] = element_count;
+    }
+    uint param_4 = 0u;
+    uint param_5 = 0u;
+    bool param_6 = true;
+    Alloc chunk_alloc = new_alloc(param_4, param_5, param_6);
+    if (element_count != 0u)
+    {
+        uint param_7 = element_count * 4u;
+        MallocResult _488 = malloc(param_7);
+        MallocResult chunk = _488;
+        chunk_alloc = chunk.alloc;
+        sh_chunk_alloc[gl_LocalInvocationID.x] = chunk_alloc;
+        if (chunk.failed)
+        {
+            sh_alloc_failed = true;
+        }
+    }
+    uint out_ix = (_253.conf.bin_alloc.offset >> uint(2)) + (((my_partition * 128u) + gl_LocalInvocationID.x) * 2u);
+    Alloc param_8;
+    param_8.offset = _253.conf.bin_alloc.offset;
+    uint param_9 = out_ix;
+    uint param_10 = element_count;
+    write_mem(param_8, param_9, param_10);
+    Alloc param_11;
+    param_11.offset = _253.conf.bin_alloc.offset;
+    uint param_12 = out_ix + 1u;
+    uint param_13 = chunk_alloc.offset;
+    write_mem(param_11, param_12, param_13);
+    barrier();
+    bool _544;
+    if (!sh_alloc_failed)
+    {
+        _544 = _84.mem_error != 0u;
+    }
+    else
+    {
+        _544 = sh_alloc_failed;
+    }
+    if (_544)
+    {
+        return;
+    }
+    x = x0;
+    y = y0;
+    while (y < y1)
+    {
+        uint bin_ix = (uint(y) * width_in_bins) + uint(x);
+        uint out_mask = bitmaps[my_slice][bin_ix];
+        if ((out_mask & my_mask) != 0u)
+        {
+            uint idx = uint(bitCount(out_mask & (my_mask - 1u)));
+            if (my_slice > 0u)
+            {
+                idx += count[my_slice - 1u][bin_ix];
+            }
+            Alloc out_alloc = sh_chunk_alloc[bin_ix];
+            uint out_offset = out_alloc.offset + (idx * 4u);
+            Alloc param_14 = out_alloc;
+            BinInstanceRef param_15 = BinInstanceRef(out_offset);
+            BinInstance param_16 = BinInstance(element_ix);
+            BinInstance_write(param_14, param_15, param_16);
+        }
+        x++;
+        if (x == x1)
+        {
+            x = x0;
+            y++;
+        }
+    }
+}
+

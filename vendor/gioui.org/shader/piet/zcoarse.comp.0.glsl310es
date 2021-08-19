@@ -1,0 +1,1188 @@
+#version 310 es
+layout(local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
+
+struct Alloc
+{
+    uint offset;
+};
+
+struct MallocResult
+{
+    Alloc alloc;
+    bool failed;
+};
+
+struct AnnoImageRef
+{
+    uint offset;
+};
+
+struct AnnoImage
+{
+    vec4 bbox;
+    float linewidth;
+    uint index;
+    ivec2 offset;
+};
+
+struct AnnoColorRef
+{
+    uint offset;
+};
+
+struct AnnoColor
+{
+    vec4 bbox;
+    float linewidth;
+    uint rgba_color;
+};
+
+struct AnnoBeginClipRef
+{
+    uint offset;
+};
+
+struct AnnoBeginClip
+{
+    vec4 bbox;
+    float linewidth;
+};
+
+struct AnnotatedRef
+{
+    uint offset;
+};
+
+struct AnnotatedTag
+{
+    uint tag;
+    uint flags;
+};
+
+struct BinInstanceRef
+{
+    uint offset;
+};
+
+struct BinInstance
+{
+    uint element_ix;
+};
+
+struct PathRef
+{
+    uint offset;
+};
+
+struct TileRef
+{
+    uint offset;
+};
+
+struct Path
+{
+    uvec4 bbox;
+    TileRef tiles;
+};
+
+struct TileSegRef
+{
+    uint offset;
+};
+
+struct Tile
+{
+    TileSegRef tile;
+    int backdrop;
+};
+
+struct CmdStrokeRef
+{
+    uint offset;
+};
+
+struct CmdStroke
+{
+    uint tile_ref;
+    float half_width;
+};
+
+struct CmdFillRef
+{
+    uint offset;
+};
+
+struct CmdFill
+{
+    uint tile_ref;
+    int backdrop;
+};
+
+struct CmdColorRef
+{
+    uint offset;
+};
+
+struct CmdColor
+{
+    uint rgba_color;
+};
+
+struct CmdImageRef
+{
+    uint offset;
+};
+
+struct CmdImage
+{
+    uint index;
+    ivec2 offset;
+};
+
+struct CmdJumpRef
+{
+    uint offset;
+};
+
+struct CmdJump
+{
+    uint new_ref;
+};
+
+struct CmdRef
+{
+    uint offset;
+};
+
+struct Config
+{
+    uint n_elements;
+    uint n_pathseg;
+    uint width_in_tiles;
+    uint height_in_tiles;
+    Alloc tile_alloc;
+    Alloc bin_alloc;
+    Alloc ptcl_alloc;
+    Alloc pathseg_alloc;
+    Alloc anno_alloc;
+    Alloc trans_alloc;
+};
+
+layout(binding = 0, std430) buffer Memory
+{
+    uint mem_offset;
+    uint mem_error;
+    uint memory[];
+} _273;
+
+layout(binding = 1, std430) readonly buffer ConfigBuf
+{
+    Config conf;
+} _1066;
+
+shared uint sh_bitmaps[4][128];
+shared Alloc sh_part_elements[128];
+shared uint sh_part_count[128];
+shared uint sh_elements[128];
+shared uint sh_tile_stride[128];
+shared uint sh_tile_width[128];
+shared uint sh_tile_x0[128];
+shared uint sh_tile_y0[128];
+shared uint sh_tile_base[128];
+shared uint sh_tile_count[128];
+
+Alloc slice_mem(Alloc a, uint offset, uint size)
+{
+    return Alloc(a.offset + offset);
+}
+
+bool touch_mem(Alloc alloc, uint offset)
+{
+    return true;
+}
+
+uint read_mem(Alloc alloc, uint offset)
+{
+    Alloc param = alloc;
+    uint param_1 = offset;
+    if (!touch_mem(param, param_1))
+    {
+        return 0u;
+    }
+    uint v = _273.memory[offset];
+    return v;
+}
+
+Alloc new_alloc(uint offset, uint size, bool mem_ok)
+{
+    Alloc a;
+    a.offset = offset;
+    return a;
+}
+
+BinInstanceRef BinInstance_index(BinInstanceRef ref, uint index)
+{
+    return BinInstanceRef(ref.offset + (index * 4u));
+}
+
+BinInstance BinInstance_read(Alloc a, BinInstanceRef ref)
+{
+    uint ix = ref.offset >> uint(2);
+    Alloc param = a;
+    uint param_1 = ix + 0u;
+    uint raw0 = read_mem(param, param_1);
+    BinInstance s;
+    s.element_ix = raw0;
+    return s;
+}
+
+AnnotatedTag Annotated_tag(Alloc a, AnnotatedRef ref)
+{
+    Alloc param = a;
+    uint param_1 = ref.offset >> uint(2);
+    uint tag_and_flags = read_mem(param, param_1);
+    return AnnotatedTag(tag_and_flags & 65535u, tag_and_flags >> uint(16));
+}
+
+Path Path_read(Alloc a, PathRef ref)
+{
+    uint ix = ref.offset >> uint(2);
+    Alloc param = a;
+    uint param_1 = ix + 0u;
+    uint raw0 = read_mem(param, param_1);
+    Alloc param_2 = a;
+    uint param_3 = ix + 1u;
+    uint raw1 = read_mem(param_2, param_3);
+    Alloc param_4 = a;
+    uint param_5 = ix + 2u;
+    uint raw2 = read_mem(param_4, param_5);
+    Path s;
+    s.bbox = uvec4(raw0 & 65535u, raw0 >> uint(16), raw1 & 65535u, raw1 >> uint(16));
+    s.tiles = TileRef(raw2);
+    return s;
+}
+
+void write_tile_alloc(uint el_ix, Alloc a)
+{
+}
+
+Alloc read_tile_alloc(uint el_ix, bool mem_ok)
+{
+    uint param = 0u;
+    uint param_1 = uint(int(uint(_273.memory.length())) * 4);
+    bool param_2 = mem_ok;
+    return new_alloc(param, param_1, param_2);
+}
+
+Tile Tile_read(Alloc a, TileRef ref)
+{
+    uint ix = ref.offset >> uint(2);
+    Alloc param = a;
+    uint param_1 = ix + 0u;
+    uint raw0 = read_mem(param, param_1);
+    Alloc param_2 = a;
+    uint param_3 = ix + 1u;
+    uint raw1 = read_mem(param_2, param_3);
+    Tile s;
+    s.tile = TileSegRef(raw0);
+    s.backdrop = int(raw1);
+    return s;
+}
+
+AnnoColor AnnoColor_read(Alloc a, AnnoColorRef ref)
+{
+    uint ix = ref.offset >> uint(2);
+    Alloc param = a;
+    uint param_1 = ix + 0u;
+    uint raw0 = read_mem(param, param_1);
+    Alloc param_2 = a;
+    uint param_3 = ix + 1u;
+    uint raw1 = read_mem(param_2, param_3);
+    Alloc param_4 = a;
+    uint param_5 = ix + 2u;
+    uint raw2 = read_mem(param_4, param_5);
+    Alloc param_6 = a;
+    uint param_7 = ix + 3u;
+    uint raw3 = read_mem(param_6, param_7);
+    Alloc param_8 = a;
+    uint param_9 = ix + 4u;
+    uint raw4 = read_mem(param_8, param_9);
+    Alloc param_10 = a;
+    uint param_11 = ix + 5u;
+    uint raw5 = read_mem(param_10, param_11);
+    AnnoColor s;
+    s.bbox = vec4(uintBitsToFloat(raw0), uintBitsToFloat(raw1), uintBitsToFloat(raw2), uintBitsToFloat(raw3));
+    s.linewidth = uintBitsToFloat(raw4);
+    s.rgba_color = raw5;
+    return s;
+}
+
+AnnoColor Annotated_Color_read(Alloc a, AnnotatedRef ref)
+{
+    Alloc param = a;
+    AnnoColorRef param_1 = AnnoColorRef(ref.offset + 4u);
+    return AnnoColor_read(param, param_1);
+}
+
+MallocResult malloc(uint size)
+{
+    uint _279 = atomicAdd(_273.mem_offset, size);
+    uint offset = _279;
+    MallocResult r;
+    r.failed = (offset + size) > uint(int(uint(_273.memory.length())) * 4);
+    uint param = offset;
+    uint param_1 = size;
+    bool param_2 = !r.failed;
+    r.alloc = new_alloc(param, param_1, param_2);
+    if (r.failed)
+    {
+        uint _308 = atomicMax(_273.mem_error, 1u);
+        return r;
+    }
+    return r;
+}
+
+void write_mem(Alloc alloc, uint offset, uint val)
+{
+    Alloc param = alloc;
+    uint param_1 = offset;
+    if (!touch_mem(param, param_1))
+    {
+        return;
+    }
+    _273.memory[offset] = val;
+}
+
+void CmdJump_write(Alloc a, CmdJumpRef ref, CmdJump s)
+{
+    uint ix = ref.offset >> uint(2);
+    Alloc param = a;
+    uint param_1 = ix + 0u;
+    uint param_2 = s.new_ref;
+    write_mem(param, param_1, param_2);
+}
+
+void Cmd_Jump_write(Alloc a, CmdRef ref, CmdJump s)
+{
+    Alloc param = a;
+    uint param_1 = ref.offset >> uint(2);
+    uint param_2 = 9u;
+    write_mem(param, param_1, param_2);
+    Alloc param_3 = a;
+    CmdJumpRef param_4 = CmdJumpRef(ref.offset + 4u);
+    CmdJump param_5 = s;
+    CmdJump_write(param_3, param_4, param_5);
+}
+
+bool alloc_cmd(inout Alloc cmd_alloc, inout CmdRef cmd_ref, inout uint cmd_limit)
+{
+    if (cmd_ref.offset < cmd_limit)
+    {
+        return true;
+    }
+    uint param = 1024u;
+    MallocResult _973 = malloc(param);
+    MallocResult new_cmd = _973;
+    if (new_cmd.failed)
+    {
+        return false;
+    }
+    CmdJump jump = CmdJump(new_cmd.alloc.offset);
+    Alloc param_1 = cmd_alloc;
+    CmdRef param_2 = cmd_ref;
+    CmdJump param_3 = jump;
+    Cmd_Jump_write(param_1, param_2, param_3);
+    cmd_alloc = new_cmd.alloc;
+    cmd_ref = CmdRef(cmd_alloc.offset);
+    cmd_limit = (cmd_alloc.offset + 1024u) - 36u;
+    return true;
+}
+
+uint fill_mode_from_flags(uint flags)
+{
+    return flags & 1u;
+}
+
+void CmdFill_write(Alloc a, CmdFillRef ref, CmdFill s)
+{
+    uint ix = ref.offset >> uint(2);
+    Alloc param = a;
+    uint param_1 = ix + 0u;
+    uint param_2 = s.tile_ref;
+    write_mem(param, param_1, param_2);
+    Alloc param_3 = a;
+    uint param_4 = ix + 1u;
+    uint param_5 = uint(s.backdrop);
+    write_mem(param_3, param_4, param_5);
+}
+
+void Cmd_Fill_write(Alloc a, CmdRef ref, CmdFill s)
+{
+    Alloc param = a;
+    uint param_1 = ref.offset >> uint(2);
+    uint param_2 = 1u;
+    write_mem(param, param_1, param_2);
+    Alloc param_3 = a;
+    CmdFillRef param_4 = CmdFillRef(ref.offset + 4u);
+    CmdFill param_5 = s;
+    CmdFill_write(param_3, param_4, param_5);
+}
+
+void Cmd_Solid_write(Alloc a, CmdRef ref)
+{
+    Alloc param = a;
+    uint param_1 = ref.offset >> uint(2);
+    uint param_2 = 3u;
+    write_mem(param, param_1, param_2);
+}
+
+void CmdStroke_write(Alloc a, CmdStrokeRef ref, CmdStroke s)
+{
+    uint ix = ref.offset >> uint(2);
+    Alloc param = a;
+    uint param_1 = ix + 0u;
+    uint param_2 = s.tile_ref;
+    write_mem(param, param_1, param_2);
+    Alloc param_3 = a;
+    uint param_4 = ix + 1u;
+    uint param_5 = floatBitsToUint(s.half_width);
+    write_mem(param_3, param_4, param_5);
+}
+
+void Cmd_Stroke_write(Alloc a, CmdRef ref, CmdStroke s)
+{
+    Alloc param = a;
+    uint param_1 = ref.offset >> uint(2);
+    uint param_2 = 2u;
+    write_mem(param, param_1, param_2);
+    Alloc param_3 = a;
+    CmdStrokeRef param_4 = CmdStrokeRef(ref.offset + 4u);
+    CmdStroke param_5 = s;
+    CmdStroke_write(param_3, param_4, param_5);
+}
+
+void write_fill(Alloc alloc, inout CmdRef cmd_ref, uint flags, Tile tile, float linewidth)
+{
+    uint param = flags;
+    if (fill_mode_from_flags(param) == 0u)
+    {
+        if (tile.tile.offset != 0u)
+        {
+            CmdFill cmd_fill = CmdFill(tile.tile.offset, tile.backdrop);
+            Alloc param_1 = alloc;
+            CmdRef param_2 = cmd_ref;
+            CmdFill param_3 = cmd_fill;
+            Cmd_Fill_write(param_1, param_2, param_3);
+            cmd_ref.offset += 12u;
+        }
+        else
+        {
+            Alloc param_4 = alloc;
+            CmdRef param_5 = cmd_ref;
+            Cmd_Solid_write(param_4, param_5);
+            cmd_ref.offset += 4u;
+        }
+    }
+    else
+    {
+        CmdStroke cmd_stroke = CmdStroke(tile.tile.offset, 0.5 * linewidth);
+        Alloc param_6 = alloc;
+        CmdRef param_7 = cmd_ref;
+        CmdStroke param_8 = cmd_stroke;
+        Cmd_Stroke_write(param_6, param_7, param_8);
+        cmd_ref.offset += 12u;
+    }
+}
+
+void CmdColor_write(Alloc a, CmdColorRef ref, CmdColor s)
+{
+    uint ix = ref.offset >> uint(2);
+    Alloc param = a;
+    uint param_1 = ix + 0u;
+    uint param_2 = s.rgba_color;
+    write_mem(param, param_1, param_2);
+}
+
+void Cmd_Color_write(Alloc a, CmdRef ref, CmdColor s)
+{
+    Alloc param = a;
+    uint param_1 = ref.offset >> uint(2);
+    uint param_2 = 5u;
+    write_mem(param, param_1, param_2);
+    Alloc param_3 = a;
+    CmdColorRef param_4 = CmdColorRef(ref.offset + 4u);
+    CmdColor param_5 = s;
+    CmdColor_write(param_3, param_4, param_5);
+}
+
+AnnoImage AnnoImage_read(Alloc a, AnnoImageRef ref)
+{
+    uint ix = ref.offset >> uint(2);
+    Alloc param = a;
+    uint param_1 = ix + 0u;
+    uint raw0 = read_mem(param, param_1);
+    Alloc param_2 = a;
+    uint param_3 = ix + 1u;
+    uint raw1 = read_mem(param_2, param_3);
+    Alloc param_4 = a;
+    uint param_5 = ix + 2u;
+    uint raw2 = read_mem(param_4, param_5);
+    Alloc param_6 = a;
+    uint param_7 = ix + 3u;
+    uint raw3 = read_mem(param_6, param_7);
+    Alloc param_8 = a;
+    uint param_9 = ix + 4u;
+    uint raw4 = read_mem(param_8, param_9);
+    Alloc param_10 = a;
+    uint param_11 = ix + 5u;
+    uint raw5 = read_mem(param_10, param_11);
+    Alloc param_12 = a;
+    uint param_13 = ix + 6u;
+    uint raw6 = read_mem(param_12, param_13);
+    AnnoImage s;
+    s.bbox = vec4(uintBitsToFloat(raw0), uintBitsToFloat(raw1), uintBitsToFloat(raw2), uintBitsToFloat(raw3));
+    s.linewidth = uintBitsToFloat(raw4);
+    s.index = raw5;
+    s.offset = ivec2(int(raw6 << uint(16)) >> 16, int(raw6) >> 16);
+    return s;
+}
+
+AnnoImage Annotated_Image_read(Alloc a, AnnotatedRef ref)
+{
+    Alloc param = a;
+    AnnoImageRef param_1 = AnnoImageRef(ref.offset + 4u);
+    return AnnoImage_read(param, param_1);
+}
+
+void CmdImage_write(Alloc a, CmdImageRef ref, CmdImage s)
+{
+    uint ix = ref.offset >> uint(2);
+    Alloc param = a;
+    uint param_1 = ix + 0u;
+    uint param_2 = s.index;
+    write_mem(param, param_1, param_2);
+    Alloc param_3 = a;
+    uint param_4 = ix + 1u;
+    uint param_5 = (uint(s.offset.x) & 65535u) | (uint(s.offset.y) << uint(16));
+    write_mem(param_3, param_4, param_5);
+}
+
+void Cmd_Image_write(Alloc a, CmdRef ref, CmdImage s)
+{
+    Alloc param = a;
+    uint param_1 = ref.offset >> uint(2);
+    uint param_2 = 6u;
+    write_mem(param, param_1, param_2);
+    Alloc param_3 = a;
+    CmdImageRef param_4 = CmdImageRef(ref.offset + 4u);
+    CmdImage param_5 = s;
+    CmdImage_write(param_3, param_4, param_5);
+}
+
+AnnoBeginClip AnnoBeginClip_read(Alloc a, AnnoBeginClipRef ref)
+{
+    uint ix = ref.offset >> uint(2);
+    Alloc param = a;
+    uint param_1 = ix + 0u;
+    uint raw0 = read_mem(param, param_1);
+    Alloc param_2 = a;
+    uint param_3 = ix + 1u;
+    uint raw1 = read_mem(param_2, param_3);
+    Alloc param_4 = a;
+    uint param_5 = ix + 2u;
+    uint raw2 = read_mem(param_4, param_5);
+    Alloc param_6 = a;
+    uint param_7 = ix + 3u;
+    uint raw3 = read_mem(param_6, param_7);
+    Alloc param_8 = a;
+    uint param_9 = ix + 4u;
+    uint raw4 = read_mem(param_8, param_9);
+    AnnoBeginClip s;
+    s.bbox = vec4(uintBitsToFloat(raw0), uintBitsToFloat(raw1), uintBitsToFloat(raw2), uintBitsToFloat(raw3));
+    s.linewidth = uintBitsToFloat(raw4);
+    return s;
+}
+
+AnnoBeginClip Annotated_BeginClip_read(Alloc a, AnnotatedRef ref)
+{
+    Alloc param = a;
+    AnnoBeginClipRef param_1 = AnnoBeginClipRef(ref.offset + 4u);
+    return AnnoBeginClip_read(param, param_1);
+}
+
+void Cmd_BeginClip_write(Alloc a, CmdRef ref)
+{
+    Alloc param = a;
+    uint param_1 = ref.offset >> uint(2);
+    uint param_2 = 7u;
+    write_mem(param, param_1, param_2);
+}
+
+void Cmd_EndClip_write(Alloc a, CmdRef ref)
+{
+    Alloc param = a;
+    uint param_1 = ref.offset >> uint(2);
+    uint param_2 = 8u;
+    write_mem(param, param_1, param_2);
+}
+
+void Cmd_End_write(Alloc a, CmdRef ref)
+{
+    Alloc param = a;
+    uint param_1 = ref.offset >> uint(2);
+    uint param_2 = 0u;
+    write_mem(param, param_1, param_2);
+}
+
+void alloc_write(Alloc a, uint offset, Alloc alloc)
+{
+    Alloc param = a;
+    uint param_1 = offset >> uint(2);
+    uint param_2 = alloc.offset;
+    write_mem(param, param_1, param_2);
+}
+
+void main()
+{
+    uint width_in_bins = ((_1066.conf.width_in_tiles + 16u) - 1u) / 16u;
+    uint bin_ix = (width_in_bins * gl_WorkGroupID.y) + gl_WorkGroupID.x;
+    uint partition_ix = 0u;
+    uint n_partitions = ((_1066.conf.n_elements + 128u) - 1u) / 128u;
+    uint th_ix = gl_LocalInvocationID.x;
+    uint bin_tile_x = 16u * gl_WorkGroupID.x;
+    uint bin_tile_y = 8u * gl_WorkGroupID.y;
+    uint tile_x = gl_LocalInvocationID.x % 16u;
+    uint tile_y = gl_LocalInvocationID.x / 16u;
+    uint this_tile_ix = (((bin_tile_y + tile_y) * _1066.conf.width_in_tiles) + bin_tile_x) + tile_x;
+    Alloc param;
+    param.offset = _1066.conf.ptcl_alloc.offset;
+    uint param_1 = this_tile_ix * 1024u;
+    uint param_2 = 1024u;
+    Alloc cmd_alloc = slice_mem(param, param_1, param_2);
+    CmdRef cmd_ref = CmdRef(cmd_alloc.offset);
+    uint cmd_limit = (cmd_ref.offset + 1024u) - 36u;
+    uint clip_depth = 0u;
+    uint clip_zero_depth = 0u;
+    uint clip_one_mask = 0u;
+    uint rd_ix = 0u;
+    uint wr_ix = 0u;
+    uint part_start_ix = 0u;
+    uint ready_ix = 0u;
+    Alloc param_3 = cmd_alloc;
+    uint param_4 = 0u;
+    uint param_5 = 8u;
+    Alloc scratch_alloc = slice_mem(param_3, param_4, param_5);
+    cmd_ref.offset += 8u;
+    uint num_begin_slots = 0u;
+    uint begin_slot = 0u;
+    bool mem_ok = _273.mem_error == 0u;
+    Alloc param_6;
+    Alloc param_8;
+    uint _1362;
+    uint element_ix;
+    AnnotatedRef ref;
+    Alloc param_17;
+    Alloc param_19;
+    uint tile_count;
+    Alloc param_26;
+    uint _1677;
+    Alloc param_32;
+    Tile tile_1;
+    Alloc param_38;
+    Alloc param_55;
+    Alloc param_72;
+    while (true)
+    {
+        for (uint i = 0u; i < 4u; i++)
+        {
+            sh_bitmaps[i][th_ix] = 0u;
+        }
+        bool _1414;
+        for (;;)
+        {
+            if ((ready_ix == wr_ix) && (partition_ix < n_partitions))
+            {
+                part_start_ix = ready_ix;
+                uint count = 0u;
+                bool _1208 = th_ix < 128u;
+                bool _1216;
+                if (_1208)
+                {
+                    _1216 = (partition_ix + th_ix) < n_partitions;
+                }
+                else
+                {
+                    _1216 = _1208;
+                }
+                if (_1216)
+                {
+                    uint in_ix = (_1066.conf.bin_alloc.offset >> uint(2)) + ((((partition_ix + th_ix) * 128u) + bin_ix) * 2u);
+                    param_6.offset = _1066.conf.bin_alloc.offset;
+                    uint param_7 = in_ix;
+                    count = read_mem(param_6, param_7);
+                    param_8.offset = _1066.conf.bin_alloc.offset;
+                    uint param_9 = in_ix + 1u;
+                    uint offset = read_mem(param_8, param_9);
+                    uint param_10 = offset;
+                    uint param_11 = count * 4u;
+                    bool param_12 = mem_ok;
+                    sh_part_elements[th_ix] = new_alloc(param_10, param_11, param_12);
+                }
+                for (uint i_1 = 0u; i_1 < 7u; i_1++)
+                {
+                    if (th_ix < 128u)
+                    {
+                        sh_part_count[th_ix] = count;
+                    }
+                    barrier();
+                    if (th_ix < 128u)
+                    {
+                        if (th_ix >= uint(1 << int(i_1)))
+                        {
+                            count += sh_part_count[th_ix - uint(1 << int(i_1))];
+                        }
+                    }
+                    barrier();
+                }
+                if (th_ix < 128u)
+                {
+                    sh_part_count[th_ix] = part_start_ix + count;
+                }
+                barrier();
+                ready_ix = sh_part_count[127];
+                partition_ix += 128u;
+            }
+            uint ix = rd_ix + th_ix;
+            if (((ix >= wr_ix) && (ix < ready_ix)) && mem_ok)
+            {
+                uint part_ix = 0u;
+                for (uint i_2 = 0u; i_2 < 7u; i_2++)
+                {
+                    uint probe = part_ix + uint(64 >> int(i_2));
+                    if (ix >= sh_part_count[probe - 1u])
+                    {
+                        part_ix = probe;
+                    }
+                }
+                if (part_ix > 0u)
+                {
+                    _1362 = sh_part_count[part_ix - 1u];
+                }
+                else
+                {
+                    _1362 = part_start_ix;
+                }
+                ix -= _1362;
+                Alloc bin_alloc = sh_part_elements[part_ix];
+                BinInstanceRef inst_ref = BinInstanceRef(bin_alloc.offset);
+                BinInstanceRef param_13 = inst_ref;
+                uint param_14 = ix;
+                Alloc param_15 = bin_alloc;
+                BinInstanceRef param_16 = BinInstance_index(param_13, param_14);
+                BinInstance inst = BinInstance_read(param_15, param_16);
+                sh_elements[th_ix] = inst.element_ix;
+            }
+            barrier();
+            wr_ix = min((rd_ix + 128u), ready_ix);
+            bool _1404 = (wr_ix - rd_ix) < 128u;
+            if (_1404)
+            {
+                _1414 = (wr_ix < ready_ix) || (partition_ix < n_partitions);
+            }
+            else
+            {
+                _1414 = _1404;
+            }
+            if (_1414)
+            {
+                continue;
+            }
+            else
+            {
+                break;
+            }
+        }
+        uint tag = 0u;
+        if ((th_ix + rd_ix) < wr_ix)
+        {
+            element_ix = sh_elements[th_ix];
+            ref = AnnotatedRef(_1066.conf.anno_alloc.offset + (element_ix * 32u));
+            param_17.offset = _1066.conf.anno_alloc.offset;
+            AnnotatedRef param_18 = ref;
+            tag = Annotated_tag(param_17, param_18).tag;
+        }
+        switch (tag)
+        {
+            case 1u:
+            case 2u:
+            case 3u:
+            case 4u:
+            {
+                uint path_ix = element_ix;
+                param_19.offset = _1066.conf.tile_alloc.offset;
+                PathRef param_20 = PathRef(_1066.conf.tile_alloc.offset + (path_ix * 12u));
+                Path path = Path_read(param_19, param_20);
+                uint stride = path.bbox.z - path.bbox.x;
+                sh_tile_stride[th_ix] = stride;
+                int dx = int(path.bbox.x) - int(bin_tile_x);
+                int dy = int(path.bbox.y) - int(bin_tile_y);
+                int x0 = clamp(dx, 0, 16);
+                int y0 = clamp(dy, 0, 8);
+                int x1 = clamp(int(path.bbox.z) - int(bin_tile_x), 0, 16);
+                int y1 = clamp(int(path.bbox.w) - int(bin_tile_y), 0, 8);
+                sh_tile_width[th_ix] = uint(x1 - x0);
+                sh_tile_x0[th_ix] = uint(x0);
+                sh_tile_y0[th_ix] = uint(y0);
+                tile_count = uint(x1 - x0) * uint(y1 - y0);
+                uint base = path.tiles.offset - (((uint(dy) * stride) + uint(dx)) * 8u);
+                sh_tile_base[th_ix] = base;
+                uint param_21 = path.tiles.offset;
+                uint param_22 = ((path.bbox.z - path.bbox.x) * (path.bbox.w - path.bbox.y)) * 8u;
+                bool param_23 = mem_ok;
+                Alloc path_alloc = new_alloc(param_21, param_22, param_23);
+                uint param_24 = th_ix;
+                Alloc param_25 = path_alloc;
+                write_tile_alloc(param_24, param_25);
+                break;
+            }
+            default:
+            {
+                tile_count = 0u;
+                break;
+            }
+        }
+        sh_tile_count[th_ix] = tile_count;
+        for (uint i_3 = 0u; i_3 < 7u; i_3++)
+        {
+            barrier();
+            if (th_ix >= uint(1 << int(i_3)))
+            {
+                tile_count += sh_tile_count[th_ix - uint(1 << int(i_3))];
+            }
+            barrier();
+            sh_tile_count[th_ix] = tile_count;
+        }
+        barrier();
+        uint total_tile_count = sh_tile_count[127];
+        for (uint ix_1 = th_ix; ix_1 < total_tile_count; ix_1 += 128u)
+        {
+            uint el_ix = 0u;
+            for (uint i_4 = 0u; i_4 < 7u; i_4++)
+            {
+                uint probe_1 = el_ix + uint(64 >> int(i_4));
+                if (ix_1 >= sh_tile_count[probe_1 - 1u])
+                {
+                    el_ix = probe_1;
+                }
+            }
+            AnnotatedRef ref_1 = AnnotatedRef(_1066.conf.anno_alloc.offset + (sh_elements[el_ix] * 32u));
+            param_26.offset = _1066.conf.anno_alloc.offset;
+            AnnotatedRef param_27 = ref_1;
+            uint tag_1 = Annotated_tag(param_26, param_27).tag;
+            if (el_ix > 0u)
+            {
+                _1677 = sh_tile_count[el_ix - 1u];
+            }
+            else
+            {
+                _1677 = 0u;
+            }
+            uint seq_ix = ix_1 - _1677;
+            uint width = sh_tile_width[el_ix];
+            uint x = sh_tile_x0[el_ix] + (seq_ix % width);
+            uint y = sh_tile_y0[el_ix] + (seq_ix / width);
+            bool include_tile = false;
+            if ((tag_1 == 3u) || (tag_1 == 4u))
+            {
+                include_tile = true;
+            }
+            else
+            {
+                if (mem_ok)
+                {
+                    uint param_28 = el_ix;
+                    bool param_29 = mem_ok;
+                    Alloc param_30 = read_tile_alloc(param_28, param_29);
+                    TileRef param_31 = TileRef(sh_tile_base[el_ix] + (((sh_tile_stride[el_ix] * y) + x) * 8u));
+                    Tile tile = Tile_read(param_30, param_31);
+                    bool _1743 = tile.tile.offset != 0u;
+                    bool _1750;
+                    if (!_1743)
+                    {
+                        _1750 = tile.backdrop != 0;
+                    }
+                    else
+                    {
+                        _1750 = _1743;
+                    }
+                    include_tile = _1750;
+                }
+            }
+            if (include_tile)
+            {
+                uint el_slice = el_ix / 32u;
+                uint el_mask = uint(1 << int(el_ix & 31u));
+                uint _1770 = atomicOr(sh_bitmaps[el_slice][(y * 16u) + x], el_mask);
+            }
+        }
+        barrier();
+        uint slice_ix = 0u;
+        uint bitmap = sh_bitmaps[0][th_ix];
+        while (mem_ok)
+        {
+            if (bitmap == 0u)
+            {
+                slice_ix++;
+                if (slice_ix == 4u)
+                {
+                    break;
+                }
+                bitmap = sh_bitmaps[slice_ix][th_ix];
+                if (bitmap == 0u)
+                {
+                    continue;
+                }
+            }
+            uint element_ref_ix = (slice_ix * 32u) + uint(findLSB(bitmap));
+            uint element_ix_1 = sh_elements[element_ref_ix];
+            bitmap &= (bitmap - 1u);
+            ref = AnnotatedRef(_1066.conf.anno_alloc.offset + (element_ix_1 * 32u));
+            param_32.offset = _1066.conf.anno_alloc.offset;
+            AnnotatedRef param_33 = ref;
+            AnnotatedTag tag_2 = Annotated_tag(param_32, param_33);
+            if (clip_zero_depth == 0u)
+            {
+                switch (tag_2.tag)
+                {
+                    case 1u:
+                    {
+                        uint param_34 = element_ref_ix;
+                        bool param_35 = mem_ok;
+                        Alloc param_36 = read_tile_alloc(param_34, param_35);
+                        TileRef param_37 = TileRef(sh_tile_base[element_ref_ix] + (((sh_tile_stride[element_ref_ix] * tile_y) + tile_x) * 8u));
+                        tile_1 = Tile_read(param_36, param_37);
+                        param_38.offset = _1066.conf.anno_alloc.offset;
+                        AnnotatedRef param_39 = ref;
+                        AnnoColor fill = Annotated_Color_read(param_38, param_39);
+                        Alloc param_40 = cmd_alloc;
+                        CmdRef param_41 = cmd_ref;
+                        uint param_42 = cmd_limit;
+                        bool _1883 = alloc_cmd(param_40, param_41, param_42);
+                        cmd_alloc = param_40;
+                        cmd_ref = param_41;
+                        cmd_limit = param_42;
+                        if (!_1883)
+                        {
+                            break;
+                        }
+                        Alloc param_43 = cmd_alloc;
+                        CmdRef param_44 = cmd_ref;
+                        uint param_45 = tag_2.flags;
+                        Tile param_46 = tile_1;
+                        float param_47 = fill.linewidth;
+                        write_fill(param_43, param_44, param_45, param_46, param_47);
+                        cmd_ref = param_44;
+                        Alloc param_48 = cmd_alloc;
+                        CmdRef param_49 = cmd_ref;
+                        CmdColor param_50 = CmdColor(fill.rgba_color);
+                        Cmd_Color_write(param_48, param_49, param_50);
+                        cmd_ref.offset += 8u;
+                        break;
+                    }
+                    case 2u:
+                    {
+                        uint param_51 = element_ref_ix;
+                        bool param_52 = mem_ok;
+                        Alloc param_53 = read_tile_alloc(param_51, param_52);
+                        TileRef param_54 = TileRef(sh_tile_base[element_ref_ix] + (((sh_tile_stride[element_ref_ix] * tile_y) + tile_x) * 8u));
+                        tile_1 = Tile_read(param_53, param_54);
+                        param_55.offset = _1066.conf.anno_alloc.offset;
+                        AnnotatedRef param_56 = ref;
+                        AnnoImage fill_img = Annotated_Image_read(param_55, param_56);
+                        Alloc param_57 = cmd_alloc;
+                        CmdRef param_58 = cmd_ref;
+                        uint param_59 = cmd_limit;
+                        bool _1955 = alloc_cmd(param_57, param_58, param_59);
+                        cmd_alloc = param_57;
+                        cmd_ref = param_58;
+                        cmd_limit = param_59;
+                        if (!_1955)
+                        {
+                            break;
+                        }
+                        Alloc param_60 = cmd_alloc;
+                        CmdRef param_61 = cmd_ref;
+                        uint param_62 = tag_2.flags;
+                        Tile param_63 = tile_1;
+                        float param_64 = fill_img.linewidth;
+                        write_fill(param_60, param_61, param_62, param_63, param_64);
+                        cmd_ref = param_61;
+                        Alloc param_65 = cmd_alloc;
+                        CmdRef param_66 = cmd_ref;
+                        CmdImage param_67 = CmdImage(fill_img.index, fill_img.offset);
+                        Cmd_Image_write(param_65, param_66, param_67);
+                        cmd_ref.offset += 12u;
+                        break;
+                    }
+                    case 3u:
+                    {
+                        uint param_68 = element_ref_ix;
+                        bool param_69 = mem_ok;
+                        Alloc param_70 = read_tile_alloc(param_68, param_69);
+                        TileRef param_71 = TileRef(sh_tile_base[element_ref_ix] + (((sh_tile_stride[element_ref_ix] * tile_y) + tile_x) * 8u));
+                        tile_1 = Tile_read(param_70, param_71);
+                        bool _2016 = tile_1.tile.offset == 0u;
+                        bool _2022;
+                        if (_2016)
+                        {
+                            _2022 = tile_1.backdrop == 0;
+                        }
+                        else
+                        {
+                            _2022 = _2016;
+                        }
+                        if (_2022)
+                        {
+                            clip_zero_depth = clip_depth + 1u;
+                        }
+                        else
+                        {
+                            if ((tile_1.tile.offset == 0u) && (clip_depth < 32u))
+                            {
+                                clip_one_mask |= uint(1 << int(clip_depth));
+                            }
+                            else
+                            {
+                                param_72.offset = _1066.conf.anno_alloc.offset;
+                                AnnotatedRef param_73 = ref;
+                                AnnoBeginClip begin_clip = Annotated_BeginClip_read(param_72, param_73);
+                                Alloc param_74 = cmd_alloc;
+                                CmdRef param_75 = cmd_ref;
+                                uint param_76 = cmd_limit;
+                                bool _2057 = alloc_cmd(param_74, param_75, param_76);
+                                cmd_alloc = param_74;
+                                cmd_ref = param_75;
+                                cmd_limit = param_76;
+                                if (!_2057)
+                                {
+                                    break;
+                                }
+                                Alloc param_77 = cmd_alloc;
+                                CmdRef param_78 = cmd_ref;
+                                uint param_79 = tag_2.flags;
+                                Tile param_80 = tile_1;
+                                float param_81 = begin_clip.linewidth;
+                                write_fill(param_77, param_78, param_79, param_80, param_81);
+                                cmd_ref = param_78;
+                                Alloc param_82 = cmd_alloc;
+                                CmdRef param_83 = cmd_ref;
+                                Cmd_BeginClip_write(param_82, param_83);
+                                cmd_ref.offset += 4u;
+                                if (clip_depth < 32u)
+                                {
+                                    clip_one_mask &= uint(~(1 << int(clip_depth)));
+                                }
+                                begin_slot++;
+                                num_begin_slots = max(num_begin_slots, begin_slot);
+                            }
+                        }
+                        clip_depth++;
+                        break;
+                    }
+                    case 4u:
+                    {
+                        clip_depth--;
+                        bool _2109 = clip_depth >= 32u;
+                        bool _2119;
+                        if (!_2109)
+                        {
+                            _2119 = (clip_one_mask & uint(1 << int(clip_depth))) == 0u;
+                        }
+                        else
+                        {
+                            _2119 = _2109;
+                        }
+                        if (_2119)
+                        {
+                            Alloc param_84 = cmd_alloc;
+                            CmdRef param_85 = cmd_ref;
+                            uint param_86 = cmd_limit;
+                            bool _2128 = alloc_cmd(param_84, param_85, param_86);
+                            cmd_alloc = param_84;
+                            cmd_ref = param_85;
+                            cmd_limit = param_86;
+                            if (!_2128)
+                            {
+                                break;
+                            }
+                            Alloc param_87 = cmd_alloc;
+                            CmdRef param_88 = cmd_ref;
+                            Cmd_Solid_write(param_87, param_88);
+                            cmd_ref.offset += 4u;
+                            begin_slot--;
+                            Alloc param_89 = cmd_alloc;
+                            CmdRef param_90 = cmd_ref;
+                            Cmd_EndClip_write(param_89, param_90);
+                            cmd_ref.offset += 4u;
+                        }
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                switch (tag_2.tag)
+                {
+                    case 3u:
+                    {
+                        clip_depth++;
+                        break;
+                    }
+                    case 4u:
+                    {
+                        if (clip_depth == clip_zero_depth)
+                        {
+                            clip_zero_depth = 0u;
+                        }
+                        clip_depth--;
+                        break;
+                    }
+                }
+            }
+        }
+        barrier();
+        rd_ix += 128u;
+        if ((rd_ix >= ready_ix) && (partition_ix >= n_partitions))
+        {
+            break;
+        }
+    }
+    bool _2193 = (bin_tile_x + tile_x) < _1066.conf.width_in_tiles;
+    bool _2202;
+    if (_2193)
+    {
+        _2202 = (bin_tile_y + tile_y) < _1066.conf.height_in_tiles;
+    }
+    else
+    {
+        _2202 = _2193;
+    }
+    if (_2202)
+    {
+        Alloc param_91 = cmd_alloc;
+        CmdRef param_92 = cmd_ref;
+        Cmd_End_write(param_91, param_92);
+        if (num_begin_slots > 0u)
+        {
+            uint scratch_size = (((num_begin_slots * 32u) * 32u) * 2u) * 4u;
+            uint param_93 = scratch_size;
+            MallocResult _2223 = malloc(param_93);
+            MallocResult scratch = _2223;
+            Alloc param_94 = scratch_alloc;
+            uint param_95 = scratch_alloc.offset;
+            Alloc param_96 = scratch.alloc;
+            alloc_write(param_94, param_95, param_96);
+        }
+    }
+}
+

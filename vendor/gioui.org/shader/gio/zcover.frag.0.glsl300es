@@ -1,0 +1,22 @@
+#version 300 es
+precision mediump float;
+precision highp int;
+
+layout(std140) uniform Color
+{
+    vec4 color;
+} _color;
+
+uniform mediump sampler2D cover;
+
+layout(location = 0) out vec4 fragColor;
+in highp vec2 vCoverUV;
+in vec2 vUV;
+
+void main()
+{
+    fragColor = _color.color;
+    float c = min(abs(texture(cover, vCoverUV).x), 1.0);
+    fragColor *= c;
+}
+

@@ -1,0 +1,619 @@
+#version 310 es
+layout(local_size_x = 16, local_size_y = 8, local_size_z = 1) in;
+
+struct Alloc
+{
+    uint offset;
+};
+
+struct CmdStrokeRef
+{
+    uint offset;
+};
+
+struct CmdStroke
+{
+    uint tile_ref;
+    float half_width;
+};
+
+struct CmdFillRef
+{
+    uint offset;
+};
+
+struct CmdFill
+{
+    uint tile_ref;
+    int backdrop;
+};
+
+struct CmdColorRef
+{
+    uint offset;
+};
+
+struct CmdColor
+{
+    uint rgba_color;
+};
+
+struct CmdImageRef
+{
+    uint offset;
+};
+
+struct CmdImage
+{
+    uint index;
+    ivec2 offset;
+};
+
+struct CmdAlphaRef
+{
+    uint offset;
+};
+
+struct CmdAlpha
+{
+    float alpha;
+};
+
+struct CmdJumpRef
+{
+    uint offset;
+};
+
+struct CmdJump
+{
+    uint new_ref;
+};
+
+struct CmdRef
+{
+    uint offset;
+};
+
+struct CmdTag
+{
+    uint tag;
+    uint flags;
+};
+
+struct TileSegRef
+{
+    uint offset;
+};
+
+struct TileSeg
+{
+    vec2 origin;
+    vec2 vector;
+    float y_edge;
+    TileSegRef next;
+};
+
+struct Config
+{
+    uint n_elements;
+    uint n_pathseg;
+    uint width_in_tiles;
+    uint height_in_tiles;
+    Alloc tile_alloc;
+    Alloc bin_alloc;
+    Alloc ptcl_alloc;
+    Alloc pathseg_alloc;
+    Alloc anno_alloc;
+    Alloc trans_alloc;
+};
+
+layout(binding = 0, std430) buffer Memory
+{
+    uint mem_offset;
+    uint mem_error;
+    uint memory[];
+} _198;
+
+layout(binding = 1, std430) restrict readonly buffer ConfigBuf
+{
+    Config conf;
+} _683;
+
+layout(binding = 3, rgba8) uniform restrict readonly highp image2D images;
+layout(binding = 2, rgba8) uniform restrict writeonly highp image2D image;
+
+Alloc slice_mem(Alloc a, uint offset, uint size)
+{
+    return Alloc(a.offset + offset);
+}
+
+bool touch_mem(Alloc alloc, uint offset)
+{
+    return true;
+}
+
+uint read_mem(Alloc alloc, uint offset)
+{
+    Alloc param = alloc;
+    uint param_1 = offset;
+    if (!touch_mem(param, param_1))
+    {
+        return 0u;
+    }
+    uint v = _198.memory[offset];
+    return v;
+}
+
+Alloc alloc_read(Alloc a, uint offset)
+{
+    Alloc param = a;
+    uint param_1 = offset >> uint(2);
+    Alloc alloc;
+    alloc.offset = read_mem(param, param_1);
+    return alloc;
+}
+
+CmdTag Cmd_tag(Alloc a, CmdRef ref)
+{
+    Alloc param = a;
+    uint param_1 = ref.offset >> uint(2);
+    uint tag_and_flags = read_mem(param, param_1);
+    return CmdTag(tag_and_flags & 65535u, tag_and_flags >> uint(16));
+}
+
+CmdStroke CmdStroke_read(Alloc a, CmdStrokeRef ref)
+{
+    uint ix = ref.offset >> uint(2);
+    Alloc param = a;
+    uint param_1 = ix + 0u;
+    uint raw0 = read_mem(param, param_1);
+    Alloc param_2 = a;
+    uint param_3 = ix + 1u;
+    uint raw1 = read_mem(param_2, param_3);
+    CmdStroke s;
+    s.tile_ref = raw0;
+    s.half_width = uintBitsToFloat(raw1);
+    return s;
+}
+
+CmdStroke Cmd_Stroke_read(Alloc a, CmdRef ref)
+{
+    Alloc param = a;
+    CmdStrokeRef param_1 = CmdStrokeRef(ref.offset + 4u);
+    return CmdStroke_read(param, param_1);
+}
+
+Alloc new_alloc(uint offset, uint size, bool mem_ok)
+{
+    Alloc a;
+    a.offset = offset;
+    return a;
+}
+
+TileSeg TileSeg_read(Alloc a, TileSegRef ref)
+{
+    uint ix = ref.offset >> uint(2);
+    Alloc param = a;
+    uint param_1 = ix + 0u;
+    uint raw0 = read_mem(param, param_1);
+    Alloc param_2 = a;
+    uint param_3 = ix + 1u;
+    uint raw1 = read_mem(param_2, param_3);
+    Alloc param_4 = a;
+    uint param_5 = ix + 2u;
+    uint raw2 = read_mem(param_4, param_5);
+    Alloc param_6 = a;
+    uint param_7 = ix + 3u;
+    uint raw3 = read_mem(param_6, param_7);
+    Alloc param_8 = a;
+    uint param_9 = ix + 4u;
+    uint raw4 = read_mem(param_8, param_9);
+    Alloc param_10 = a;
+    uint param_11 = ix + 5u;
+    uint raw5 = read_mem(param_10, param_11);
+    TileSeg s;
+    s.origin = vec2(uintBitsToFloat(raw0), uintBitsToFloat(raw1));
+    s.vector = vec2(uintBitsToFloat(raw2), uintBitsToFloat(raw3));
+    s.y_edge = uintBitsToFloat(raw4);
+    s.next = TileSegRef(raw5);
+    return s;
+}
+
+uvec2 chunk_offset(uint i)
+{
+    return uvec2((i % 2u) * 16u, (i / 2u) * 8u);
+}
+
+CmdFill CmdFill_read(Alloc a, CmdFillRef ref)
+{
+    uint ix = ref.offset >> uint(2);
+    Alloc param = a;
+    uint param_1 = ix + 0u;
+    uint raw0 = read_mem(param, param_1);
+    Alloc param_2 = a;
+    uint param_3 = ix + 1u;
+    uint raw1 = read_mem(param_2, param_3);
+    CmdFill s;
+    s.tile_ref = raw0;
+    s.backdrop = int(raw1);
+    return s;
+}
+
+CmdFill Cmd_Fill_read(Alloc a, CmdRef ref)
+{
+    Alloc param = a;
+    CmdFillRef param_1 = CmdFillRef(ref.offset + 4u);
+    return CmdFill_read(param, param_1);
+}
+
+CmdAlpha CmdAlpha_read(Alloc a, CmdAlphaRef ref)
+{
+    uint ix = ref.offset >> uint(2);
+    Alloc param = a;
+    uint param_1 = ix + 0u;
+    uint raw0 = read_mem(param, param_1);
+    CmdAlpha s;
+    s.alpha = uintBitsToFloat(raw0);
+    return s;
+}
+
+CmdAlpha Cmd_Alpha_read(Alloc a, CmdRef ref)
+{
+    Alloc param = a;
+    CmdAlphaRef param_1 = CmdAlphaRef(ref.offset + 4u);
+    return CmdAlpha_read(param, param_1);
+}
+
+CmdColor CmdColor_read(Alloc a, CmdColorRef ref)
+{
+    uint ix = ref.offset >> uint(2);
+    Alloc param = a;
+    uint param_1 = ix + 0u;
+    uint raw0 = read_mem(param, param_1);
+    CmdColor s;
+    s.rgba_color = raw0;
+    return s;
+}
+
+CmdColor Cmd_Color_read(Alloc a, CmdRef ref)
+{
+    Alloc param = a;
+    CmdColorRef param_1 = CmdColorRef(ref.offset + 4u);
+    return CmdColor_read(param, param_1);
+}
+
+mediump vec3 fromsRGB(mediump vec3 srgb)
+{
+    bvec3 cutoff = greaterThanEqual(srgb, vec3(0.040449999272823333740234375));
+    mediump vec3 below = srgb / vec3(12.9200000762939453125);
+    mediump vec3 above = pow((srgb + vec3(0.054999999701976776123046875)) / vec3(1.05499994754791259765625), vec3(2.400000095367431640625));
+    return mix(below, above, cutoff);
+}
+
+mediump vec4 unpacksRGB(uint srgba)
+{
+    mediump vec4 color = unpackUnorm4x8(srgba).wzyx;
+    mediump vec3 param = color.xyz;
+    return vec4(fromsRGB(param), color.w);
+}
+
+CmdImage CmdImage_read(Alloc a, CmdImageRef ref)
+{
+    uint ix = ref.offset >> uint(2);
+    Alloc param = a;
+    uint param_1 = ix + 0u;
+    uint raw0 = read_mem(param, param_1);
+    Alloc param_2 = a;
+    uint param_3 = ix + 1u;
+    uint raw1 = read_mem(param_2, param_3);
+    CmdImage s;
+    s.index = raw0;
+    s.offset = ivec2(int(raw1 << uint(16)) >> 16, int(raw1) >> 16);
+    return s;
+}
+
+CmdImage Cmd_Image_read(Alloc a, CmdRef ref)
+{
+    Alloc param = a;
+    CmdImageRef param_1 = CmdImageRef(ref.offset + 4u);
+    return CmdImage_read(param, param_1);
+}
+
+mediump vec4[8] fillImage(uvec2 xy, CmdImage cmd_img)
+{
+    mediump vec4 rgba[8];
+    for (uint i = 0u; i < 8u; i++)
+    {
+        uint param = i;
+        ivec2 uv = ivec2(xy + chunk_offset(param)) + cmd_img.offset;
+        mediump vec4 fg_rgba = imageLoad(images, uv);
+        mediump vec3 param_1 = fg_rgba.xyz;
+        mediump vec3 _659 = fromsRGB(param_1);
+        fg_rgba = vec4(_659.x, _659.y, _659.z, fg_rgba.w);
+        rgba[i] = fg_rgba;
+    }
+    return rgba;
+}
+
+mediump vec3 tosRGB(mediump vec3 rgb)
+{
+    bvec3 cutoff = greaterThanEqual(rgb, vec3(0.003130800090730190277099609375));
+    mediump vec3 below = vec3(12.9200000762939453125) * rgb;
+    mediump vec3 above = (vec3(1.05499994754791259765625) * pow(rgb, vec3(0.416660010814666748046875))) - vec3(0.054999999701976776123046875);
+    return mix(below, above, cutoff);
+}
+
+uint packsRGB(inout mediump vec4 rgba)
+{
+    mediump vec3 param = rgba.xyz;
+    rgba = vec4(tosRGB(param), rgba.w);
+    return packUnorm4x8(rgba.wzyx);
+}
+
+void write_mem(Alloc alloc, uint offset, uint val)
+{
+    Alloc param = alloc;
+    uint param_1 = offset;
+    if (!touch_mem(param, param_1))
+    {
+        return;
+    }
+    _198.memory[offset] = val;
+}
+
+CmdJump CmdJump_read(Alloc a, CmdJumpRef ref)
+{
+    uint ix = ref.offset >> uint(2);
+    Alloc param = a;
+    uint param_1 = ix + 0u;
+    uint raw0 = read_mem(param, param_1);
+    CmdJump s;
+    s.new_ref = raw0;
+    return s;
+}
+
+CmdJump Cmd_Jump_read(Alloc a, CmdRef ref)
+{
+    Alloc param = a;
+    CmdJumpRef param_1 = CmdJumpRef(ref.offset + 4u);
+    return CmdJump_read(param, param_1);
+}
+
+void main()
+{
+    uint tile_ix = (gl_WorkGroupID.y * _683.conf.width_in_tiles) + gl_WorkGroupID.x;
+    Alloc param;
+    param.offset = _683.conf.ptcl_alloc.offset;
+    uint param_1 = tile_ix * 1024u;
+    uint param_2 = 1024u;
+    Alloc cmd_alloc = slice_mem(param, param_1, param_2);
+    CmdRef cmd_ref = CmdRef(cmd_alloc.offset);
+    Alloc param_3 = cmd_alloc;
+    uint param_4 = cmd_ref.offset;
+    Alloc scratch_alloc = alloc_read(param_3, param_4);
+    cmd_ref.offset += 8u;
+    uvec2 xy_uint = uvec2(gl_LocalInvocationID.x + (32u * gl_WorkGroupID.x), gl_LocalInvocationID.y + (32u * gl_WorkGroupID.y));
+    vec2 xy = vec2(xy_uint);
+    mediump vec4 rgba[8];
+    for (uint i = 0u; i < 8u; i++)
+    {
+        rgba[i] = vec4(0.0);
+    }
+    uint clip_depth = 0u;
+    bool mem_ok = _198.mem_error == 0u;
+    mediump float df[8];
+    TileSegRef tile_seg_ref;
+    mediump float area[8];
+    uint base_ix;
+    while (mem_ok)
+    {
+        Alloc param_5 = cmd_alloc;
+        CmdRef param_6 = cmd_ref;
+        uint tag = Cmd_tag(param_5, param_6).tag;
+        if (tag == 0u)
+        {
+            break;
+        }
+        switch (tag)
+        {
+            case 2u:
+            {
+                Alloc param_7 = cmd_alloc;
+                CmdRef param_8 = cmd_ref;
+                CmdStroke stroke = Cmd_Stroke_read(param_7, param_8);
+                for (uint k = 0u; k < 8u; k++)
+                {
+                    df[k] = 1000000000.0;
+                }
+                tile_seg_ref = TileSegRef(stroke.tile_ref);
+                do
+                {
+                    uint param_9 = tile_seg_ref.offset;
+                    uint param_10 = 24u;
+                    bool param_11 = mem_ok;
+                    Alloc param_12 = new_alloc(param_9, param_10, param_11);
+                    TileSegRef param_13 = tile_seg_ref;
+                    TileSeg seg = TileSeg_read(param_12, param_13);
+                    vec2 line_vec = seg.vector;
+                    for (uint k_1 = 0u; k_1 < 8u; k_1++)
+                    {
+                        vec2 dpos = (xy + vec2(0.5)) - seg.origin;
+                        uint param_14 = k_1;
+                        dpos += vec2(chunk_offset(param_14));
+                        float t = clamp(dot(line_vec, dpos) / dot(line_vec, line_vec), 0.0, 1.0);
+                        df[k_1] = min(df[k_1], length((line_vec * t) - dpos));
+                    }
+                    tile_seg_ref = seg.next;
+                } while (tile_seg_ref.offset != 0u);
+                for (uint k_2 = 0u; k_2 < 8u; k_2++)
+                {
+                    area[k_2] = clamp((stroke.half_width + 0.5) - df[k_2], 0.0, 1.0);
+                }
+                cmd_ref.offset += 12u;
+                break;
+            }
+            case 1u:
+            {
+                Alloc param_15 = cmd_alloc;
+                CmdRef param_16 = cmd_ref;
+                CmdFill fill = Cmd_Fill_read(param_15, param_16);
+                for (uint k_3 = 0u; k_3 < 8u; k_3++)
+                {
+                    area[k_3] = float(fill.backdrop);
+                }
+                tile_seg_ref = TileSegRef(fill.tile_ref);
+                do
+                {
+                    uint param_17 = tile_seg_ref.offset;
+                    uint param_18 = 24u;
+                    bool param_19 = mem_ok;
+                    Alloc param_20 = new_alloc(param_17, param_18, param_19);
+                    TileSegRef param_21 = tile_seg_ref;
+                    TileSeg seg_1 = TileSeg_read(param_20, param_21);
+                    for (uint k_4 = 0u; k_4 < 8u; k_4++)
+                    {
+                        uint param_22 = k_4;
+                        vec2 my_xy = xy + vec2(chunk_offset(param_22));
+                        vec2 start = seg_1.origin - my_xy;
+                        vec2 end = start + seg_1.vector;
+                        vec2 window = clamp(vec2(start.y, end.y), vec2(0.0), vec2(1.0));
+                        if (!(window.x == window.y))
+                        {
+                            vec2 t_1 = (window - vec2(start.y)) / vec2(seg_1.vector.y);
+                            vec2 xs = vec2(mix(start.x, end.x, t_1.x), mix(start.x, end.x, t_1.y));
+                            float xmin = min(min(xs.x, xs.y), 1.0) - 9.9999999747524270787835121154785e-07;
+                            float xmax = max(xs.x, xs.y);
+                            float b = min(xmax, 1.0);
+                            float c = max(b, 0.0);
+                            float d = max(xmin, 0.0);
+                            float a = ((b + (0.5 * ((d * d) - (c * c)))) - xmin) / (xmax - xmin);
+                            area[k_4] += (a * (window.x - window.y));
+                        }
+                        area[k_4] += (sign(seg_1.vector.x) * clamp((my_xy.y - seg_1.y_edge) + 1.0, 0.0, 1.0));
+                    }
+                    tile_seg_ref = seg_1.next;
+                } while (tile_seg_ref.offset != 0u);
+                for (uint k_5 = 0u; k_5 < 8u; k_5++)
+                {
+                    area[k_5] = min(abs(area[k_5]), 1.0);
+                }
+                cmd_ref.offset += 12u;
+                break;
+            }
+            case 3u:
+            {
+                for (uint k_6 = 0u; k_6 < 8u; k_6++)
+                {
+                    area[k_6] = 1.0;
+                }
+                cmd_ref.offset += 4u;
+                break;
+            }
+            case 4u:
+            {
+                Alloc param_23 = cmd_alloc;
+                CmdRef param_24 = cmd_ref;
+                CmdAlpha alpha = Cmd_Alpha_read(param_23, param_24);
+                for (uint k_7 = 0u; k_7 < 8u; k_7++)
+                {
+                    area[k_7] = alpha.alpha;
+                }
+                cmd_ref.offset += 8u;
+                break;
+            }
+            case 5u:
+            {
+                Alloc param_25 = cmd_alloc;
+                CmdRef param_26 = cmd_ref;
+                CmdColor color = Cmd_Color_read(param_25, param_26);
+                uint param_27 = color.rgba_color;
+                mediump vec4 fg = unpacksRGB(param_27);
+                for (uint k_8 = 0u; k_8 < 8u; k_8++)
+                {
+                    mediump vec4 fg_k = fg * area[k_8];
+                    rgba[k_8] = (rgba[k_8] * (1.0 - fg_k.w)) + fg_k;
+                }
+                cmd_ref.offset += 8u;
+                break;
+            }
+            case 6u:
+            {
+                Alloc param_28 = cmd_alloc;
+                CmdRef param_29 = cmd_ref;
+                CmdImage fill_img = Cmd_Image_read(param_28, param_29);
+                uvec2 param_30 = xy_uint;
+                CmdImage param_31 = fill_img;
+                mediump vec4 img[8] = fillImage(param_30, param_31);
+                for (uint k_9 = 0u; k_9 < 8u; k_9++)
+                {
+                    mediump vec4 fg_k_1 = img[k_9] * area[k_9];
+                    rgba[k_9] = (rgba[k_9] * (1.0 - fg_k_1.w)) + fg_k_1;
+                }
+                cmd_ref.offset += 12u;
+                break;
+            }
+            case 7u:
+            {
+                base_ix = (scratch_alloc.offset >> uint(2)) + (2u * ((((clip_depth * 32u) * 32u) + gl_LocalInvocationID.x) + (32u * gl_LocalInvocationID.y)));
+                for (uint k_10 = 0u; k_10 < 8u; k_10++)
+                {
+                    uint param_32 = k_10;
+                    uvec2 offset = chunk_offset(param_32);
+                    mediump vec4 param_33 = vec4(rgba[k_10]);
+                    uint _1285 = packsRGB(param_33);
+                    uint srgb = _1285;
+                    mediump float alpha_1 = clamp(abs(area[k_10]), 0.0, 1.0);
+                    Alloc param_34 = scratch_alloc;
+                    uint param_35 = (base_ix + 0u) + (2u * (offset.x + (offset.y * 32u)));
+                    uint param_36 = srgb;
+                    write_mem(param_34, param_35, param_36);
+                    Alloc param_37 = scratch_alloc;
+                    uint param_38 = (base_ix + 1u) + (2u * (offset.x + (offset.y * 32u)));
+                    uint param_39 = floatBitsToUint(alpha_1);
+                    write_mem(param_37, param_38, param_39);
+                    rgba[k_10] = vec4(0.0);
+                }
+                clip_depth++;
+                cmd_ref.offset += 4u;
+                break;
+            }
+            case 8u:
+            {
+                clip_depth--;
+                base_ix = (scratch_alloc.offset >> uint(2)) + (2u * ((((clip_depth * 32u) * 32u) + gl_LocalInvocationID.x) + (32u * gl_LocalInvocationID.y)));
+                for (uint k_11 = 0u; k_11 < 8u; k_11++)
+                {
+                    uint param_40 = k_11;
+                    uvec2 offset_1 = chunk_offset(param_40);
+                    Alloc param_41 = scratch_alloc;
+                    uint param_42 = (base_ix + 0u) + (2u * (offset_1.x + (offset_1.y * 32u)));
+                    uint srgb_1 = read_mem(param_41, param_42);
+                    Alloc param_43 = scratch_alloc;
+                    uint param_44 = (base_ix + 1u) + (2u * (offset_1.x + (offset_1.y * 32u)));
+                    uint alpha_2 = read_mem(param_43, param_44);
+                    uint param_45 = srgb_1;
+                    mediump vec4 bg = unpacksRGB(param_45);
+                    mediump vec4 fg_1 = (rgba[k_11] * area[k_11]) * uintBitsToFloat(alpha_2);
+                    rgba[k_11] = (bg * (1.0 - fg_1.w)) + fg_1;
+                }
+                cmd_ref.offset += 4u;
+                break;
+            }
+            case 9u:
+            {
+                Alloc param_46 = cmd_alloc;
+                CmdRef param_47 = cmd_ref;
+                cmd_ref = CmdRef(Cmd_Jump_read(param_46, param_47).new_ref);
+                cmd_alloc.offset = cmd_ref.offset;
+                break;
+            }
+        }
+    }
+    for (uint i_1 = 0u; i_1 < 8u; i_1++)
+    {
+        uint param_48 = i_1;
+        mediump vec3 param_49 = rgba[i_1].xyz;
+        imageStore(image, ivec2(xy_uint + chunk_offset(param_48)), vec4(tosRGB(param_49), rgba[i_1].w));
+    }
+}
+

@@ -1,0 +1,21 @@
+#version 100
+
+struct Block
+{
+    vec2 scale;
+    vec2 pos;
+    vec2 uvScale;
+};
+
+uniform Block _block;
+
+varying vec2 vUV;
+attribute vec2 uv;
+attribute vec2 pos;
+
+void main()
+{
+    vUV = uv * _block.uvScale;
+    gl_Position = vec4((pos * _block.scale) + _block.pos, 0.0, 1.0);
+}
+

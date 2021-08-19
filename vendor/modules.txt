@@ -1,3 +1,50 @@
+# gioui.org v0.0.0-20210819082505-f47508729638
+## explicit
+gioui.org/app
+gioui.org/app/internal/log
+gioui.org/app/internal/windows
+gioui.org/app/internal/wm
+gioui.org/app/internal/xkb
+gioui.org/f32
+gioui.org/font/gofont
+gioui.org/font/opentype
+gioui.org/gesture
+gioui.org/gpu
+gioui.org/gpu/internal/d3d11
+gioui.org/gpu/internal/driver
+gioui.org/gpu/internal/opengl
+gioui.org/internal/byteslice
+gioui.org/internal/cocoainit
+gioui.org/internal/d3d11
+gioui.org/internal/egl
+gioui.org/internal/f32color
+gioui.org/internal/fling
+gioui.org/internal/gl
+gioui.org/internal/opconst
+gioui.org/internal/ops
+gioui.org/internal/scene
+gioui.org/internal/stroke
+gioui.org/io/clipboard
+gioui.org/io/event
+gioui.org/io/key
+gioui.org/io/pointer
+gioui.org/io/profile
+gioui.org/io/router
+gioui.org/io/system
+gioui.org/layout
+gioui.org/op
+gioui.org/op/clip
+gioui.org/op/paint
+gioui.org/text
+gioui.org/unit
+gioui.org/widget
+gioui.org/widget/material
+# gioui.org/cpu v0.0.0-20210817075930-8d6a761490d2
+gioui.org/cpu
+# gioui.org/shader v0.0.0-20210816161847-c12352edbd45
+gioui.org/shader
+gioui.org/shader/gio
+gioui.org/shader/piet
 # github.com/antlr/antlr4 v0.0.0-20191011202612-ad2bd05285ca
 github.com/antlr/antlr4/runtime/Go/antlr
 # github.com/antonmedv/expr v1.3.1
@@ -27,8 +74,37 @@ github.com/mattn/go-runewidth
 github.com/rivo/tview
 # github.com/rivo/uniseg v0.0.0-20190513083848-b9f5b9457d44
 github.com/rivo/uniseg
-# golang.org/x/text v0.3.2
+# golang.org/x/exp v0.0.0-20210722180016-6781d3edade3
+golang.org/x/exp/shiny/iconvg
+golang.org/x/exp/shiny/iconvg/internal/gradient
+golang.org/x/exp/shiny/materialdesign/icons
+# golang.org/x/image v0.0.0-20210628002857-a66eb6448b8d
+golang.org/x/image/font
+golang.org/x/image/font/gofont/gobold
+golang.org/x/image/font/gofont/gobolditalic
+golang.org/x/image/font/gofont/goitalic
+golang.org/x/image/font/gofont/gomedium
+golang.org/x/image/font/gofont/gomediumitalic
+golang.org/x/image/font/gofont/gomono
+golang.org/x/image/font/gofont/gomonobold
+golang.org/x/image/font/gofont/gomonobolditalic
+golang.org/x/image/font/gofont/gomonoitalic
+golang.org/x/image/font/gofont/goregular
+golang.org/x/image/font/gofont/gosmallcaps
+golang.org/x/image/font/gofont/gosmallcapsitalic
+golang.org/x/image/font/sfnt
+golang.org/x/image/math/f32
+golang.org/x/image/math/f64
+golang.org/x/image/math/fixed
+golang.org/x/image/vector
+# golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c
+golang.org/x/sys/internal/unsafeheader
+golang.org/x/sys/unix
+golang.org/x/sys/windows
+# golang.org/x/text v0.3.6
 golang.org/x/text/encoding
+golang.org/x/text/encoding/charmap
+golang.org/x/text/encoding/internal
 golang.org/x/text/encoding/internal/identifier
 golang.org/x/text/transform
 golang.org/x/text/width
