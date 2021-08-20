@@ -24,10 +24,10 @@ func getTuiApp(theme string, debug bool) App {
 }
 
 func getGuiApp(theme string, debug bool) App {
-	_, ok := gui.Themes[theme]
+	t, ok := gui.Themes[theme]
 	if !ok {
 		log.Fatalf("Theme not found: %s", theme)
 	}
 
-	return new(gui.App)
+	return gui.NewApp(t, debug)
 }

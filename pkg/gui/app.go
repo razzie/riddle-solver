@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -15,6 +16,21 @@ import (
 type App struct {
 	th   *material.Theme
 	tabs Tabs
+}
+
+func NewApp(th *material.Theme, debug bool) *App {
+	a := &App{
+		th:   th,
+		tabs: Tabs{Theme: th},
+	}
+
+	for i := 1; i <= 10; i++ {
+		a.tabs.tabs = append(a.tabs.tabs,
+			Tab{Title: fmt.Sprintf("Tab %d", i)},
+		)
+	}
+
+	return a
 }
 
 func (a *App) Run() error {
