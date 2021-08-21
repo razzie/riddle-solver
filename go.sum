@@ -1,13 +1,17 @@
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 cloud.google.com/go v0.34.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20201218220906-28db891af037/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
+gioui.org v0.0.0-20210729070555-8cec7e04eb71/go.mod h1:N4QK6T0gTQc7ogB7rniAyYQb8/klqI6hQkqV+HAh5Mw=
 gioui.org v0.0.0-20210819082505-f47508729638 h1:wW8cc1JggLtUymP/YACzeJ7HQQJ1wsxG/qgwXkoXASQ=
 gioui.org v0.0.0-20210819082505-f47508729638/go.mod h1:oAzz1wTEkhKul+8Qo649OmmOVOGo3jQd+l1KdeUWVLk=
+gioui.org/cpu v0.0.0-20210727122813-41509bcd3462/go.mod h1:DkhBDuHokSMOUxX5LZQ7IcxyJJzs3OON8Z5ojaXUXxo=
 gioui.org/cpu v0.0.0-20210808092351-bfe733dd3334/go.mod h1:A8M0Cn5o+vY5LTMlnRoK3O5kG+rH0kWfJjeKd9QpBmQ=
 gioui.org/cpu v0.0.0-20210817075930-8d6a761490d2 h1:AGDDxsJE1RpcXTAxPG2B4jrwVUJGFDjINIPi1jtO6pc=
 gioui.org/cpu v0.0.0-20210817075930-8d6a761490d2/go.mod h1:A8M0Cn5o+vY5LTMlnRoK3O5kG+rH0kWfJjeKd9QpBmQ=
 gioui.org/shader v0.0.0-20210816161847-c12352edbd45 h1:tWCgnOK33iYKNvQ4ctNHBknZ6r273Na82wcTOFc29ZM=
 gioui.org/shader v0.0.0-20210816161847-c12352edbd45/go.mod h1:mWdiME581d/kV7/iEhLmUgUK5iZ09XR5XpduXzbePVM=
+gioui.org/x v0.0.0-20210816192830-9ea938c228a0 h1:fFa9q4EtyjaBZw3rLRPI6szkNYCVuMK4SG7JHs5qot4=
+gioui.org/x v0.0.0-20210816192830-9ea938c228a0/go.mod h1:+BOtudS1JLP5YKhna9BFi32SrO/Hm7IkBPjFQJQrn6g=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/DATA-DOG/go-sqlmock v1.3.3 h1:CWUqKXe0s8A2z6qCgkP4Kru7wC11YoAnoupUKFDnH08=

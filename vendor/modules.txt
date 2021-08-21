@@ -45,6 +45,9 @@ gioui.org/cpu
 gioui.org/shader
 gioui.org/shader/gio
 gioui.org/shader/piet
+# gioui.org/x v0.0.0-20210816192830-9ea938c228a0
+## explicit
+gioui.org/x/component
 # github.com/antlr/antlr4 v0.0.0-20191011202612-ad2bd05285ca
 github.com/antlr/antlr4/runtime/Go/antlr
 # github.com/antonmedv/expr v1.3.1

@@ -14,21 +14,26 @@ import (
 )
 
 type App struct {
-	th   *material.Theme
-	tabs Tabs
+	th *material.Theme
+	ph *PageHandler
 }
 
 func NewApp(th *material.Theme, debug bool) *App {
 	a := &App{
-		th:   th,
-		tabs: Tabs{Theme: th},
+		th: th,
+		ph: NewPageHandler(th),
 	}
 
 	for i := 1; i <= 10; i++ {
-		a.tabs.tabs = append(a.tabs.tabs,
-			Tab{Title: fmt.Sprintf("Tab %d", i)},
-		)
+		a.ph.tabs.AddTab(fmt.Sprintf("Tab %d", i), nil)
 	}
+	a.ph.tabs.SetSelectFunc(func(i int) {
+		if i == 3 {
+			a.ph.ModalYesNo("test test test", func() {
+				a.ph.ModalMessage("yes pressed")
+			})
+		}
+	})
 
 	return a
 }
@@ -36,7 +41,7 @@ func NewApp(th *material.Theme, debug bool) *App {
 func (a *App) Run() error {
 	go func() {
 		defer os.Exit(0)
-		w := app.NewWindow()
+		w := app.NewWindow(app.Title("Razzie's Riddle Solver"))
 		if err := a.loop(w); err != nil {
 			log.Fatal(err)
 		}
@@ -58,7 +63,7 @@ func (a *App) loop(w *app.Window) error {
 			return e.Err
 		case system.FrameEvent:
 			gtx := layout.NewContext(&ops, e)
-			a.tabs.Layout(gtx)
+			a.ph.Layout(gtx)
 			e.Frame(gtx.Ops)
 		}
 	}
