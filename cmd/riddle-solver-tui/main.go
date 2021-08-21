@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/razzie/riddle-solver/pkg/riddle"
+	"github.com/razzie/riddle-solver/pkg/tui"
 )
 
 var (
@@ -34,19 +35,16 @@ func tryLoadRiddle() *riddle.Riddle {
 }
 
 func main() {
-	var app App
-	r := tryLoadRiddle()
-
-	if nogui {
-		app = getTuiApp(theme, debug)
+	if t, ok := tui.Themes[theme]; ok {
+		t.Apply()
 	} else {
-		app = getGuiApp(theme, debug)
+		log.Fatalf("Theme not found: %s", theme)
 	}
 
-	if r != nil {
+	app := tui.NewApp(debug)
+	if r := tryLoadRiddle(); r != nil {
 		app.SetRiddle(r)
 	}
-
 	if err := app.Run(); err != nil {
 		log.Fatal(err)
 	}

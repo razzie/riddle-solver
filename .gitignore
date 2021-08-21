@@ -1,4 +1,5 @@
-/riddle-solver
-/riddle-solver.exe
-/riddle-solver.lnk
+/riddle-solver-gui
+/riddle-solver-gui.exe
+/riddle-solver-tui
+/riddle-solver-tui.exe
 /riddles/autosave.json
