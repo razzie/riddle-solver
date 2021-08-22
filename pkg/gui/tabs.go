@@ -17,11 +17,11 @@ import (
 )
 
 type Tabs struct {
+	theme    *material.Theme
 	list     layout.List
 	tabs     []tab
 	selected int
 	slider   Slider
-	theme    *material.Theme
 	onSelect func(int)
 }
 
@@ -32,7 +32,9 @@ type tab struct {
 }
 
 func NewTabs(th *material.Theme) *Tabs {
-	return &Tabs{theme: th}
+	return &Tabs{
+		theme: th,
+	}
 }
 
 func (tabs *Tabs) SetSelectFunc(onSelect func(int)) {
@@ -44,17 +46,20 @@ func (tabs *Tabs) AddTab(title string, content layout.Widget) {
 }
 
 func (tabs *Tabs) Layout(gtx layout.Context) layout.Dimensions {
+	gtx.Constraints.Min = gtx.Constraints.Max
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 		layout.Flexed(1, func(gtx C) D {
-			return tabs.slider.Layout(gtx, func(gtx C) D {
-				w := tabs.tabs[tabs.selected].content
-				if w != nil {
-					return w(gtx)
-				}
-				fill(gtx, dynamicColor(tabs.selected), dynamicColor(tabs.selected+1))
-				return layout.Center.Layout(gtx,
-					material.H1(tabs.theme, fmt.Sprintf("Tab content #%d", tabs.selected+1)).Layout,
-				)
+			return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx C) D {
+				return tabs.slider.Layout(gtx, func(gtx C) D {
+					w := tabs.tabs[tabs.selected].content
+					if w != nil {
+						return w(gtx)
+					}
+					fill(gtx, dynamicColor(tabs.selected), dynamicColor(tabs.selected+1))
+					return layout.Center.Layout(gtx,
+						material.H1(tabs.theme, fmt.Sprintf("Tab content #%d", tabs.selected+1)).Layout,
+					)
+				})
 			})
 		}),
 		layout.Rigid(func(gtx C) D {
@@ -101,11 +106,6 @@ func (tabs *Tabs) Layout(gtx layout.Context) layout.Dimensions {
 
 func fill(gtx layout.Context, col1, col2 color.NRGBA) {
 	dr := image.Rectangle{Max: gtx.Constraints.Min}
-	/*paint.FillShape(gtx.Ops,
-		color.NRGBA{R: 0, G: 0, B: 0, A: 0xFF},
-		clip.Rect(dr).Op(),
-	)*/
-
 	col2.R = byte(float32(col2.R))
 	col2.G = byte(float32(col2.G))
 	col2.B = byte(float32(col2.B))
