@@ -3,6 +3,7 @@ package gui
 import (
 	"image"
 
+	"gioui.org/f32"
 	"gioui.org/layout"
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
@@ -34,6 +35,11 @@ func (mbox *MessageBox) Layout(gtx C) D {
 	gtx.Constraints.Max.X = gtx.Px(unit.Dp(400))
 	gtx.Constraints.Max.Y = gtx.Px(unit.Dp(100))
 	gtx.Constraints.Min = gtx.Constraints.Max
+	rr := float32(gtx.Px(unit.Dp(8)))
+	clip.UniformRRect(f32.Rectangle{Max: f32.Point{
+		X: float32(gtx.Constraints.Min.X),
+		Y: float32(gtx.Constraints.Min.Y),
+	}}, rr).Add(gtx.Ops)
 	dr := image.Rectangle{Max: gtx.Constraints.Min}
 	paint.FillShape(gtx.Ops,
 		mbox.theme.Bg,
@@ -82,6 +88,11 @@ func (mbox *YesNoMessageBox) Layout(gtx C) D {
 	gtx.Constraints.Max.X = gtx.Px(unit.Dp(400))
 	gtx.Constraints.Max.Y = gtx.Px(unit.Dp(100))
 	gtx.Constraints.Min = gtx.Constraints.Max
+	rr := float32(gtx.Px(unit.Dp(8)))
+	clip.UniformRRect(f32.Rectangle{Max: f32.Point{
+		X: float32(gtx.Constraints.Min.X),
+		Y: float32(gtx.Constraints.Min.Y),
+	}}, rr).Add(gtx.Ops)
 	dr := image.Rectangle{Max: gtx.Constraints.Min}
 	paint.FillShape(gtx.Ops,
 		mbox.theme.Bg,
