@@ -48,6 +48,7 @@ func (ph *PageHandler) ModalYesNo(msg string, yesFunc func()) {
 }
 
 func (ph *PageHandler) Layout(gtx C) D {
+	gtx.Constraints.Min = gtx.Constraints.Max
 	return layout.Stack{Alignment: layout.S}.Layout(gtx,
 		layout.Stacked(ph.tabs.Layout),
 		layout.Stacked(func(gtx C) D {

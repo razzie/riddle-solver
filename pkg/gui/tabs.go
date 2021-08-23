@@ -45,23 +45,9 @@ func (tabs *Tabs) AddTab(title string, content layout.Widget) {
 	tabs.tabs = append(tabs.tabs, tab{title: title, content: content})
 }
 
-func (tabs *Tabs) Layout(gtx layout.Context) layout.Dimensions {
+func (tabs *Tabs) Layout(gtx C) D {
 	gtx.Constraints.Min = gtx.Constraints.Max
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-		layout.Flexed(1, func(gtx C) D {
-			return layout.UniformInset(unit.Dp(8)).Layout(gtx, func(gtx C) D {
-				return tabs.slider.Layout(gtx, func(gtx C) D {
-					w := tabs.tabs[tabs.selected].content
-					if w != nil {
-						return w(gtx)
-					}
-					fill(gtx, dynamicColor(tabs.selected), dynamicColor(tabs.selected+1))
-					return layout.Center.Layout(gtx,
-						material.H1(tabs.theme, fmt.Sprintf("Tab content #%d", tabs.selected+1)).Layout,
-					)
-				})
-			})
-		}),
 		layout.Rigid(func(gtx C) D {
 			return tabs.list.Layout(gtx, len(tabs.tabs), func(gtx C, tabIdx int) D {
 				t := &tabs.tabs[tabIdx]
@@ -98,6 +84,18 @@ func (tabs *Tabs) Layout(gtx layout.Context) layout.Dimensions {
 							Size: image.Point{X: tabWidth, Y: tabHeight},
 						}
 					}),
+				)
+			})
+		}),
+		layout.Flexed(1, func(gtx C) D {
+			return tabs.slider.Layout(gtx, func(gtx C) D {
+				w := tabs.tabs[tabs.selected].content
+				if w != nil {
+					return layout.UniformInset(unit.Dp(8)).Layout(gtx, w)
+				}
+				fill(gtx, dynamicColor(tabs.selected), dynamicColor(tabs.selected+1))
+				return layout.Center.Layout(gtx,
+					material.H1(tabs.theme, fmt.Sprintf("Tab content #%d", tabs.selected+1)).Layout,
 				)
 			})
 		}),

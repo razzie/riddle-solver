@@ -1,7 +1,6 @@
 package gui
 
 import (
-	"fmt"
 	"log"
 	"os"
 
@@ -24,16 +23,9 @@ func NewApp(th *material.Theme, debug bool) *App {
 		ph: NewPageHandler(th),
 	}
 
-	for i := 1; i <= 10; i++ {
-		a.ph.tabs.AddTab(fmt.Sprintf("Tab %d", i), nil)
-	}
-	a.ph.tabs.SetSelectFunc(func(i int) {
-		if i == 3 {
-			a.ph.ModalYesNo("test test test", func() {
-				a.ph.ModalMessage("yes pressed")
-			})
-		}
-	})
+	a.ph.tabs.AddTab("test tab", nil)
+	setuppage := NewSetupPage(th, a.ph)
+	a.ph.AddPage(setuppage)
 
 	return a
 }
