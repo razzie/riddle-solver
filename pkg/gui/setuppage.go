@@ -56,7 +56,7 @@ func (p *SetupPage) Layout(gtx C) D {
 			p.Save()
 		}
 		if p.buttons.Clicked(2) {
-			p.Reset()
+			p.modal.ModalYesNo("Are you sure?", p.Reset)
 		}
 		return p.buttons.Layout(gtx, p.theme)
 	})
@@ -134,24 +134,23 @@ func (p *SetupPage) Reset() {
 }
 
 type setupItem struct {
+	list     layout.List
 	itemType component.TextField
 	values   component.TextField
 }
 
 func (item *setupItem) Layout(gtx C, th *material.Theme, idx int) D {
-	return layout.Flex{
-		Axis:      layout.Horizontal,
-		Spacing:   layout.SpaceEvenly,
-		WeightSum: 1,
-	}.Layout(gtx,
-		layout.Rigid(func(gtx C) D {
+	return item.list.Layout(gtx, 3, func(gtx C, idx int) D {
+		switch idx {
+		case 0:
 			return material.Label(th, th.TextSize, fmt.Sprintf("#%d", idx+1)).Layout(gtx)
-		}),
-		layout.Flexed(0.3, func(gtx C) D {
+		case 1:
+			gtx.Constraints.Max.X = gtx.Px(unit.Dp(200))
 			return item.itemType.Layout(gtx, th, "item type")
-		}),
-		layout.Flexed(0.6, func(gtx C) D {
+		case 2:
+			gtx.Constraints.Max.X = gtx.Px(unit.Dp(400))
 			return item.values.Layout(gtx, th, "values (comma separated)")
-		}),
-	)
+		}
+		return D{}
+	})
 }

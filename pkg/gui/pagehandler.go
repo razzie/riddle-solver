@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"gioui.org/layout"
+	"gioui.org/op"
 	"gioui.org/widget/material"
 	"gioui.org/x/component"
 )
@@ -12,14 +13,14 @@ type PageHandler struct {
 	theme *material.Theme
 	tabs  *Tabs
 	pages []Page
-	modal component.ModalStyle
+	modal component.ModalLayer
 }
 
 func NewPageHandler(th *material.Theme) *PageHandler {
 	ph := &PageHandler{
 		theme: th,
 		tabs:  NewTabs(th),
-		modal: component.Modal(th, new(component.ModalState)),
+		modal: *component.NewModal(),
 	}
 	ph.modal.VisibilityAnimation.Duration = time.Millisecond * 250
 	ph.modal.VisibilityAnimation.State = component.Invisible
@@ -32,27 +33,37 @@ func (ph *PageHandler) AddPage(page Page) {
 }
 
 func (ph *PageHandler) ModalMessage(msg string) {
-	ph.modal.Show(time.Now(), NewMessageBox(ph.theme, msg, func() {
+	mbox := NewMessageBox(ph.theme, msg, func() {
 		ph.modal.Disappear(time.Now())
-	}))
+	})
+	ph.modal.Widget = func(gtx C, th *material.Theme, anim *component.VisibilityAnimation) D {
+		return mbox(gtx)
+	}
+	ph.modal.Appear(time.Now())
 }
 
 func (ph *PageHandler) ModalYesNo(msg string, yesFunc func()) {
-	ph.modal.Show(time.Now(), NewYesNoMessageBox(ph.theme, msg, func(yes bool) {
+	mbox := NewYesNoMessageBox(ph.theme, msg, func(yes bool) {
 		if yes {
 			yesFunc()
-		} else {
-			ph.modal.Disappear(time.Now())
 		}
-	}))
+		ph.modal.Disappear(time.Now())
+	})
+	ph.modal.Widget = func(gtx C, th *material.Theme, anim *component.VisibilityAnimation) D {
+		return mbox(gtx)
+	}
+	ph.modal.Appear(time.Now())
 }
 
 func (ph *PageHandler) Layout(gtx C) D {
+	defer op.Save(gtx.Ops).Load()
 	gtx.Constraints.Min = gtx.Constraints.Max
-	return layout.Stack{Alignment: layout.S}.Layout(gtx,
-		layout.Stacked(ph.tabs.Layout),
-		layout.Stacked(func(gtx C) D {
-			return ph.modal.Layout(gtx)
+	return layout.Stack{Alignment: layout.Center}.Layout(gtx,
+		layout.Expanded(func(gtx C) D {
+			return ph.tabs.Layout(gtx)
+		}),
+		layout.Expanded(func(gtx C) D {
+			return ph.modal.Layout(gtx, ph.theme)
 		}),
 	)
 }
