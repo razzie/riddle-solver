@@ -1,8 +1,6 @@
 package gui
 
 import (
-	"image"
-
 	"gioui.org/f32"
 	"gioui.org/layout"
 	"gioui.org/op/clip"
@@ -40,11 +38,7 @@ func (mbox *MessageBox) Layout(gtx C) D {
 		X: float32(gtx.Constraints.Min.X),
 		Y: float32(gtx.Constraints.Min.Y),
 	}}, rr).Add(gtx.Ops)
-	dr := image.Rectangle{Max: gtx.Constraints.Min}
-	paint.FillShape(gtx.Ops,
-		mbox.theme.Bg,
-		clip.Rect(dr).Op(),
-	)
+	paint.Fill(gtx.Ops, mbox.theme.Bg)
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 		layout.Flexed(1, func(gtx C) D {
 			return layout.Center.Layout(gtx, func(gtx C) D {
@@ -93,11 +87,7 @@ func (mbox *YesNoMessageBox) Layout(gtx C) D {
 		X: float32(gtx.Constraints.Min.X),
 		Y: float32(gtx.Constraints.Min.Y),
 	}}, rr).Add(gtx.Ops)
-	dr := image.Rectangle{Max: gtx.Constraints.Min}
-	paint.FillShape(gtx.Ops,
-		mbox.theme.Bg,
-		clip.Rect(dr).Op(),
-	)
+	paint.Fill(gtx.Ops, mbox.theme.Bg)
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 		layout.Flexed(1, func(gtx C) D {
 			return layout.Center.Layout(gtx, func(gtx C) D {

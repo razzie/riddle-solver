@@ -91,6 +91,7 @@ func (tabs *Tabs) Layout(gtx C) D {
 			return tabs.slider.Layout(gtx, func(gtx C) D {
 				w := tabs.tabs[tabs.selected].content
 				if w != nil {
+					//defer op.Save(gtx.Ops).Load()
 					return layout.UniformInset(unit.Dp(8)).Layout(gtx, w)
 				}
 				fill(gtx, dynamicColor(tabs.selected), dynamicColor(tabs.selected+1))

@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -47,6 +48,13 @@ func (a *App) SetRiddle(r *riddle.Riddle) error {
 }
 
 func (a *App) loop(w *app.Window) error {
+	defer func() {
+		if r := recover(); r != nil {
+			OSMessageBox(fmt.Sprint(r), "Error")
+			os.Exit(1)
+		}
+	}()
+
 	var ops op.Ops
 	for {
 		e := <-w.Events()

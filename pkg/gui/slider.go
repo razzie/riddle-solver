@@ -76,7 +76,7 @@ func (s *Slider) Layout(gtx layout.Context, w layout.Widget) layout.Dimensions {
 		}
 		gtx := gtx
 		gtx.Ops = s.next
-		gtx.Ops.Reset()
+		//gtx.Ops.Reset()
 		m := op.Record(gtx.Ops)
 		dims = w(gtx)
 		s.nextCall = m.Stop()

@@ -16,7 +16,7 @@ var _ Page = (*SetupPage)(nil)
 type SetupPage struct {
 	theme    *material.Theme
 	modal    ModalHandler
-	list     layout.List
+	list     ListWithScrollbar
 	items    []setupItem
 	buttons  ButtonBar
 	saveFunc func(riddle.Setup)
@@ -24,11 +24,13 @@ type SetupPage struct {
 
 func NewSetupPage(th *material.Theme, modal ModalHandler) *SetupPage {
 	p := &SetupPage{
-		theme:   th,
-		modal:   modal,
-		list:    layout.List{Axis: layout.Vertical},
+		theme: th,
+		modal: modal,
+		//list:    layout.List{Axis: layout.Vertical},
 		buttons: NewButtonBar("Add item type", "Save / apply", "Reset"),
 	}
+	p.list.Axis = layout.Vertical
+	p.list.Alignment = layout.Start
 	p.Reset()
 	return p
 }
@@ -42,20 +44,20 @@ func (p *SetupPage) Select() {
 }
 
 func (p *SetupPage) Layout(gtx C) D {
+	gtx.Constraints.Min.X = gtx.Constraints.Max.X
 	in := layout.UniformInset(unit.Dp(5))
-	return p.list.Layout(gtx, len(p.items)+1, func(gtx C, idx int) D {
+	return p.list.Layout(gtx, p.theme, len(p.items)+1, func(gtx C, idx int) D {
 		if idx < len(p.items) {
 			return in.Layout(gtx, func(gtx C) D {
 				return p.items[idx].Layout(gtx, p.theme, idx)
 			})
 		}
-		if p.buttons.Clicked(0) {
+		switch {
+		case p.buttons.Clicked(0):
 			p.Add()
-		}
-		if p.buttons.Clicked(1) {
+		case p.buttons.Clicked(1):
 			p.Save()
-		}
-		if p.buttons.Clicked(2) {
+		case p.buttons.Clicked(2):
 			p.modal.ModalYesNo("Are you sure?", p.Reset)
 		}
 		return p.buttons.Layout(gtx, p.theme)
@@ -104,7 +106,7 @@ func (p *SetupPage) GetSetup() (riddle.Setup, error) {
 func (p *SetupPage) SetSetup(setup riddle.Setup) {
 	var newItems []setupItem
 	for itemType, values := range setup {
-		var newItem setupItem
+		newItem := newSetupItem()
 		newItem.itemType.SetText(itemType)
 		newItem.values.SetText(strings.Join(values, ", "))
 		newItems = append(newItems, newItem)
@@ -130,7 +132,7 @@ func (p *SetupPage) Save() {
 }
 
 func (p *SetupPage) Reset() {
-	p.items = []setupItem{{}}
+	p.items = []setupItem{newSetupItem()}
 }
 
 type setupItem struct {
@@ -139,18 +141,30 @@ type setupItem struct {
 	values   component.TextField
 }
 
+func newSetupItem() setupItem {
+	return setupItem{}
+}
+
 func (item *setupItem) Layout(gtx C, th *material.Theme, idx int) D {
-	return item.list.Layout(gtx, 3, func(gtx C, idx int) D {
-		switch idx {
-		case 0:
-			return material.Label(th, th.TextSize, fmt.Sprintf("#%d", idx+1)).Layout(gtx)
-		case 1:
-			gtx.Constraints.Max.X = gtx.Px(unit.Dp(200))
-			return item.itemType.Layout(gtx, th, "item type")
-		case 2:
-			gtx.Constraints.Max.X = gtx.Px(unit.Dp(400))
-			return item.values.Layout(gtx, th, "values (comma separated)")
-		}
-		return D{}
+	in := layout.Inset{Left: unit.Dp(5)}
+	maxWidth := gtx.Constraints.Max.X
+	gtx.Constraints.Min.X = maxWidth
+	widgets := [...]layout.Widget{
+		material.Label(th, th.TextSize, fmt.Sprintf("#%d", idx+1)).Layout,
+		func(gtx C) D {
+			gtx.Constraints.Max.X = maxWidth / 3
+			return in.Layout(gtx, func(gtx C) D {
+				return item.itemType.Layout(gtx, th, "item type")
+			})
+		},
+		func(gtx C) D {
+			gtx.Constraints.Max.X = maxWidth / 2
+			return in.Layout(gtx, func(gtx C) D {
+				return item.values.Layout(gtx, th, "values (comma separated)")
+			})
+		},
+	}
+	return item.list.Layout(gtx, len(widgets), func(gtx C, idx int) D {
+		return widgets[idx](gtx)
 	})
 }
