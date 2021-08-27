@@ -24,9 +24,8 @@ type SetupPage struct {
 
 func NewSetupPage(th *material.Theme, modal ModalHandler) *SetupPage {
 	p := &SetupPage{
-		theme: th,
-		modal: modal,
-		//list:    layout.List{Axis: layout.Vertical},
+		theme:   th,
+		modal:   modal,
 		buttons: NewButtonBar("Add item type", "Save / apply", "Reset"),
 	}
 	p.list.Axis = layout.Vertical
