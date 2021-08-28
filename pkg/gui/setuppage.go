@@ -26,10 +26,9 @@ func NewSetupPage(th *material.Theme, modal ModalHandler) *SetupPage {
 	p := &SetupPage{
 		theme:   th,
 		modal:   modal,
+		list:    NewListWithScrollbar(),
 		buttons: NewButtonBar("Add item type", "Save / apply", "Reset"),
 	}
-	p.list.Axis = layout.Vertical
-	p.list.Alignment = layout.Start
 	p.Reset()
 	return p
 }

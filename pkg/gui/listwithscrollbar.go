@@ -2,6 +2,7 @@ package gui
 
 import (
 	"image"
+	"time"
 
 	"gioui.org/f32"
 	"gioui.org/layout"
@@ -10,23 +11,78 @@ import (
 	"gioui.org/op/paint"
 	"gioui.org/unit"
 	"gioui.org/widget/material"
+	"gioui.org/x/component"
 )
 
 type ListWithScrollbar struct {
 	layout.List
+	component.VisibilityAnimation
+	FinalAlpha         int
+	VisibilityDuration time.Duration
+
+	activated  time.Time
+	fakeOps    op.Ops
+	wSizes     []int
+	max        int
+	contentLen int
+	offset     int
+}
+
+func NewListWithScrollbar() ListWithScrollbar {
+	return ListWithScrollbar{
+		List: layout.List{
+			Axis:      layout.Vertical,
+			Alignment: layout.Start,
+		},
+		VisibilityAnimation: component.VisibilityAnimation{
+			State:    component.Invisible,
+			Duration: time.Second,
+		},
+		FinalAlpha:         128,
+		VisibilityDuration: time.Second,
+	}
+}
+
+func (l *ListWithScrollbar) update(gtx C, len int, w layout.ListElement) {
+	fakeGtx := gtx
+	fakeGtx.Ops = &l.fakeOps
+	fakeGtx.Reset()
+	fakeGtx.Constraints.Min = image.Pt(0, 0)
+
+	l.wSizes = l.wSizes[:0]
+	contentLen := 0
+	for i := 0; i < len; i++ {
+		size := l.Axis.Convert(w(fakeGtx, i).Size).X
+		l.wSizes = append(l.wSizes, size)
+		contentLen += size
+	}
+	offset := l.Position.Offset
+	for i := 0; i < l.Position.First; i++ {
+		offset += l.wSizes[i]
+	}
+
+	max := l.Axis.Convert(gtx.Constraints.Max).X
+	if contentLen < max {
+		l.Disappear(gtx.Now)
+	} else {
+		if l.max != max || l.offset != offset || l.contentLen != contentLen {
+			l.Appear(gtx.Now)
+			l.activated = gtx.Now
+		} else if l.activated.Add(l.VisibilityDuration).Before(gtx.Now) {
+			l.Disappear(gtx.Now)
+		}
+	}
+	if l.Visible() {
+		op.InvalidateOp{At: gtx.Now.Add(l.VisibilityDuration)}.Add(gtx.Ops)
+	}
+
+	l.max = max
+	l.contentLen = contentLen
+	l.offset = offset
 }
 
 func (l *ListWithScrollbar) Layout(gtx C, th *material.Theme, len int, w layout.ListElement) D {
-	fakeGtx := gtx
-	fakeGtx.Ops = new(op.Ops)
-	fakeGtx.Constraints.Min = image.Pt(0, 0)
-	contentLen := 0
-	wSizes := make([]int, len)
-	for i := 0; i < len; i++ {
-		size := l.Axis.Convert(w(fakeGtx, i).Size).X
-		wSizes[i] = size
-		contentLen += size
-	}
+	l.update(gtx, len, w)
 
 	var stack layout.Stack
 	if l.Axis == layout.Vertical {
@@ -39,21 +95,13 @@ func (l *ListWithScrollbar) Layout(gtx C, th *material.Theme, len int, w layout.
 			return l.List.Layout(gtx, len, w)
 		}),
 		layout.Stacked(func(gtx C) D {
-			max := l.Axis.Convert(gtx.Constraints.Max).X
-			if contentLen < max {
-				return D{}
+			scale := float32(l.max) / float32(l.contentLen)
+			if scale > 1 {
+				scale = 1
 			}
-
-			offset := l.Position.Offset
-			for i := 0; i < l.Position.First; i++ {
-				offset += wSizes[i]
-			}
-
-			scale := float32(max) / float32(contentLen)
 			scrollbarThickness := float32(gtx.Px(unit.Dp(8)))
-			scrollbarStart := float32(offset) * scale
-			scrollbarLen := float32(max) * scale
-
+			scrollbarStart := float32(l.offset) * scale
+			scrollbarLen := float32(l.max) * scale
 			var scrollbar f32.Rectangle
 			if l.Axis == layout.Vertical {
 				scrollbar = f32.Rect(
@@ -72,7 +120,8 @@ func (l *ListWithScrollbar) Layout(gtx C, th *material.Theme, len int, w layout.
 			}
 			rr := scrollbarThickness / 2
 			clip.UniformRRect(scrollbar, rr).Add(gtx.Ops)
-			paint.Fill(gtx.Ops, th.ContrastBg)
+			alpha := uint8(float32(l.FinalAlpha) * l.Revealed(gtx))
+			paint.Fill(gtx.Ops, component.WithAlpha(th.ContrastBg, alpha))
 			return D{}
 		}),
 	)
