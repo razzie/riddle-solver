@@ -78,8 +78,10 @@ func (tabs *Tabs) Layout(gtx C) D {
 							return layout.Dimensions{}
 						}
 						tabHeight := gtx.Px(unit.Dp(4))
-						tabRect := image.Rect(0, 0, tabWidth, tabHeight)
-						paint.FillShape(gtx.Ops, tabs.theme.Palette.ContrastBg, clip.Rect(tabRect).Op())
+						tabRect := f32.Rect(0, 0, float32(tabWidth), float32(tabHeight))
+						clip.UniformRRect(tabRect, float32(tabHeight)/2).Add(gtx.Ops)
+						paint.Fill(gtx.Ops, tabs.theme.ContrastBg)
+						//paint.FillShape(gtx.Ops, tabs.theme.Palette.ContrastBg, clip.Rect(tabRect).Op())
 						return layout.Dimensions{
 							Size: image.Point{X: tabWidth, Y: tabHeight},
 						}
@@ -91,7 +93,6 @@ func (tabs *Tabs) Layout(gtx C) D {
 			return tabs.slider.Layout(gtx, func(gtx C) D {
 				w := tabs.tabs[tabs.selected].content
 				if w != nil {
-					//defer op.Save(gtx.Ops).Load()
 					return layout.UniformInset(unit.Dp(8)).Layout(gtx, w)
 				}
 				fill(gtx, dynamicColor(tabs.selected), dynamicColor(tabs.selected+1))
