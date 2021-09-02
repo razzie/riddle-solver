@@ -57,6 +57,9 @@ func (l *ListWithScrollbar) update(gtx C, len int, w layout.ListElement) {
 		contentLen += size
 	}
 	offset := l.Position.Offset
+	if l.Position.First >= len {
+		l.Position.First = len - 1
+	}
 	for i := 0; i < l.Position.First; i++ {
 		offset += l.wSizes[i]
 	}
