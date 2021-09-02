@@ -1,10 +1,16 @@
 .PHONY: all gui tui
 .DEFAULT_GOAL := all
+GO := go
+BUILD := build -mod=vendor
+GOROOT := $(shell go env GOROOT)
+LDFLAGS := -s -w
+GCFLAGS := -trimpath=$(CURDIR);$(GOROOT)/src
 
 all: gui tui
 
+gui: LDFLAGS += -H=windowsgui
 gui:
-	go build -mod=vendor -ldflags="-s -w -H=windowsgui" -gcflags=-trimpath=$(CURDIR) ./cmd/riddle-solver-gui
+	$(GO) $(BUILD) -ldflags="$(LDFLAGS)" -gcflags=all="$(GCFLAGS)" ./cmd/riddle-solver-gui
 
 tui:
-	go build -mod=vendor -ldflags="-s -w" -gcflags=-trimpath=$(CURDIR) ./cmd/riddle-solver-tui
+	$(GO) $(BUILD) -ldflags="$(LDFLAGS)" -gcflags=all="$(GCFLAGS)" ./cmd/riddle-solver-tui

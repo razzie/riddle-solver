@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime/debug"
 
 	"gioui.org/app"
 	"gioui.org/io/system"
@@ -50,7 +51,7 @@ func (a *App) SetRiddle(r *riddle.Riddle) error {
 func (a *App) loop(w *app.Window) error {
 	defer func() {
 		if r := recover(); r != nil {
-			OSMessageBox(fmt.Sprint(r), "Error")
+			OSMessageBox(fmt.Sprint(r, "\n", string(debug.Stack())), "Error")
 			os.Exit(1)
 		}
 	}()
