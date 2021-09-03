@@ -77,7 +77,8 @@ github.com/mattn/go-runewidth
 github.com/rivo/tview
 # github.com/rivo/uniseg v0.0.0-20190513083848-b9f5b9457d44
 github.com/rivo/uniseg
-# golang.org/x/exp v0.0.0-20210722180016-6781d3edade3
+# golang.org/x/exp v0.0.0-20210901193431-a062eea981d2
+## explicit
 golang.org/x/exp/shiny/iconvg
 golang.org/x/exp/shiny/iconvg/internal/gradient
 golang.org/x/exp/shiny/materialdesign/icons
