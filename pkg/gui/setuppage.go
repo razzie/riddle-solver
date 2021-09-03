@@ -6,6 +6,7 @@ import (
 
 	"gioui.org/layout"
 	"gioui.org/unit"
+	"gioui.org/widget"
 	"gioui.org/widget/material"
 	"gioui.org/x/component"
 	"github.com/razzie/riddle-solver/pkg/riddle"
@@ -20,15 +21,19 @@ type SetupPage struct {
 	items    []setupItem
 	buttons  ButtonBar
 	saveFunc func(riddle.Setup)
+	removeCh chan int
 }
 
 func NewSetupPage(th *material.Theme, modal ModalHandler) *SetupPage {
 	p := &SetupPage{
-		theme:   th,
-		modal:   modal,
-		list:    NewListWithScrollbar(),
-		buttons: NewButtonBar("Add item type", "Save / apply", "Reset"),
+		theme:    th,
+		modal:    modal,
+		list:     NewListWithScrollbar(),
+		buttons:  NewButtonBar("Add item type", "Save / apply", "Reset"),
+		removeCh: make(chan int, 1),
 	}
+	p.buttons.SetButtonIcon(0, GetIcons().ContentAdd)
+	p.list.ScrollToEnd = true
 	p.Reset()
 	return p
 }
@@ -41,7 +46,17 @@ func (p *SetupPage) Select() {
 
 }
 
+func (p *SetupPage) update() {
+	select {
+	case idx := <-p.removeCh:
+		p.items = append(p.items[:idx], p.items[idx+1:]...)
+	default:
+	}
+}
+
 func (p *SetupPage) Layout(gtx C) D {
+	p.update()
+
 	gtx.Constraints.Min.X = gtx.Constraints.Max.X
 	in := layout.UniformInset(unit.Dp(5))
 	return p.list.Layout(gtx, p.theme, len(p.items)+1, func(gtx C, idx int) D {
@@ -58,6 +73,7 @@ func (p *SetupPage) Layout(gtx C) D {
 		case p.buttons.Clicked(2):
 			p.modal.ModalYesNo("Are you sure?", p.Reset)
 		}
+		gtx.Constraints.Min.X = gtx.Constraints.Max.X
 		return p.buttons.Layout(gtx, p.theme)
 	})
 }
@@ -71,7 +87,7 @@ func (p *SetupPage) GetSetup() (riddle.Setup, error) {
 
 	for _, item := range p.items {
 		itemType := item.itemType.Text()
-		values := strings.Split(item.values.Text(), "")
+		values := strings.Split(item.values.Text(), ",")
 		if len(itemType) == 0 {
 			if len(values) > 0 {
 				return nil, fmt.Errorf("cannot have values without item type")
@@ -104,7 +120,7 @@ func (p *SetupPage) GetSetup() (riddle.Setup, error) {
 func (p *SetupPage) SetSetup(setup riddle.Setup) {
 	var newItems []setupItem
 	for itemType, values := range setup {
-		newItem := newSetupItem()
+		newItem := newSetupItem(p)
 		newItem.itemType.SetText(itemType)
 		newItem.values.SetText(strings.Join(values, ", "))
 		newItems = append(newItems, newItem)
@@ -114,7 +130,11 @@ func (p *SetupPage) SetSetup(setup riddle.Setup) {
 }
 
 func (p *SetupPage) Add() {
-	p.items = append(p.items, setupItem{})
+	p.items = append(p.items, newSetupItem(p))
+}
+
+func (p *SetupPage) remove(idx int) {
+	p.removeCh <- idx
 }
 
 func (p *SetupPage) Save() {
@@ -130,17 +150,27 @@ func (p *SetupPage) Save() {
 }
 
 func (p *SetupPage) Reset() {
-	p.items = []setupItem{newSetupItem()}
+	p.items = []setupItem{newSetupItem(p)}
 }
 
 type setupItem struct {
-	list     layout.List
-	itemType component.TextField
-	values   component.TextField
+	list       layout.List
+	itemType   component.TextField
+	values     component.TextField
+	delete     widget.Clickable
+	deleteIcon *widget.Icon
+	p          *SetupPage
 }
 
-func newSetupItem() setupItem {
-	return setupItem{}
+func newSetupItem(p *SetupPage) setupItem {
+	return setupItem{
+		list: layout.List{
+			Axis:      layout.Horizontal,
+			Alignment: layout.Middle,
+		},
+		deleteIcon: GetIcons().ActionDelete,
+		p:          p,
+	}
 }
 
 func (item *setupItem) Layout(gtx C, th *material.Theme, idx int) D {
@@ -160,6 +190,12 @@ func (item *setupItem) Layout(gtx C, th *material.Theme, idx int) D {
 			return in.Layout(gtx, func(gtx C) D {
 				return item.values.Layout(gtx, th, "values (comma separated)")
 			})
+		},
+		func(gtx C) D {
+			if item.delete.Clicked() {
+				item.p.remove(idx)
+			}
+			return in.Layout(gtx, IconAndTextButton(th, &item.delete, item.deleteIcon, "").Layout)
 		},
 	}
 	return item.list.Layout(gtx, len(widgets), func(gtx C, idx int) D {
