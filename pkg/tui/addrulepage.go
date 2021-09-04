@@ -81,8 +81,8 @@ func NewRuleForm(modal ModalHandler) *AddRulePage {
 func (p *AddRulePage) HandleSetup(setup riddle.Setup) {
 	p.Reset()
 	p.setup = setup
-	autocompleteItems := getAutocompleteItemsFunc(setup.GetItems())
-	autocompleteItemTypes := getAutocompleteFunc(setup.GetItemTypes())
+	autocompleteItems := riddle.GetAutocompleteItemsFunc(setup.GetItems())
+	autocompleteItemTypes := riddle.GetAutocompleteFunc(setup.GetItemTypes())
 	p.itemA.SetAutocompleteFunc(autocompleteItems)
 	p.itemB.SetAutocompleteFunc(autocompleteItems)
 	p.conditionItemType.SetAutocompleteFunc(autocompleteItemTypes)
