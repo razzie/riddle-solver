@@ -43,6 +43,10 @@ func NewListWithScrollbar() ListWithScrollbar {
 	}
 }
 
+func (l *ListWithScrollbar) FitsScreen() bool {
+	return l.contentLen <= l.max
+}
+
 func (l *ListWithScrollbar) update(gtx C, len int, w layout.ListElement) {
 	fakeGtx := gtx
 	fakeGtx.Ops = &l.fakeOps

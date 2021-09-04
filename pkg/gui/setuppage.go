@@ -33,7 +33,6 @@ func NewSetupPage(th *material.Theme, modal ModalHandler) *SetupPage {
 		removeCh: make(chan int, 1),
 	}
 	p.buttons.SetButtonIcon(0, GetIcons().ContentAdd)
-	p.list.ScrollToEnd = true
 	p.Reset()
 	return p
 }
@@ -56,6 +55,10 @@ func (p *SetupPage) update() {
 
 func (p *SetupPage) Layout(gtx C) D {
 	p.update()
+
+	if p.list.FitsScreen() == p.list.ScrollToEnd {
+		p.list.ScrollToEnd = !p.list.FitsScreen()
+	}
 
 	gtx.Constraints.Min.X = gtx.Constraints.Max.X
 	in := layout.UniformInset(unit.Dp(5))
@@ -192,7 +195,9 @@ func (item *setupItem) Layout(gtx C, th *material.Theme, idx int) D {
 			})
 		},
 		func(gtx C) D {
-			if item.delete.Clicked() {
+			if len(item.itemType.Text()) > 0 || len(item.values.Text()) > 0 {
+				gtx.Queue = nil
+			} else if item.delete.Clicked() {
 				item.p.remove(idx)
 			}
 			return in.Layout(gtx, IconAndTextButton(th, &item.delete, item.deleteIcon, "").Layout)
