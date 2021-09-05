@@ -25,9 +25,16 @@ func NewApp(th *material.Theme, debug bool) *App {
 		ph: NewPageHandler(th),
 	}
 
-	a.ph.tabs.AddTab("test tab", nil)
+	r := riddle.NewEinsteinRiddle()
+
+	//a.ph.tabs.AddTab("test tab", nil)
+
 	setuppage := NewSetupPage(th, a.ph)
+	setuppage.SetSetup(r.Setup)
 	a.ph.AddPage(setuppage)
+
+	addrulepage := NewAddRulePage(th, a.ph)
+	a.ph.AddPage(addrulepage)
 
 	return a
 }
