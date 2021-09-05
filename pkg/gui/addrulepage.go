@@ -145,7 +145,6 @@ func (p *AddRulePage) SetSaveFunc(saveFunc func(*riddle.Rule)) {
 
 func (p *AddRulePage) Reset() {
 	p.rule = nil
-	p.rule = nil
 	p.itemA.SetText("")
 	p.itemB.SetText("")
 	p.relation.Value = ""

@@ -45,7 +45,7 @@ func (p *RulesPage) Layout(gtx C) D {
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 		layout.Rigid(func(gtx C) D {
 			return p.list.Layout(gtx, p.theme, len(p.rules), func(gtx C, idx int) D {
-				dims := p.rules[idx].Layout(gtx, p.theme)
+				dims := p.rules[idx].Layout(gtx, p)
 				dims.Size.X = gtx.Constraints.Max.X
 				dims.Size.Y += gtx.Px(unit.Dp(12))
 				return dims
@@ -115,6 +115,12 @@ func (p *RulesPage) findRule(rule *riddle.Rule) (index int, found bool) {
 	return -1, false
 }
 
+func (p *RulesPage) editRule(rule *riddle.Rule) {
+	if p.editFunc != nil {
+		p.editFunc(rule)
+	}
+}
+
 func (p *RulesPage) removeRule(index int, save bool) {
 	if len(p.rules) == 0 {
 		return
@@ -155,7 +161,8 @@ func (p *RulesPage) Reset() {
 	p.rules = nil
 }
 
-func (rule *ruleItem) Layout(gtx C, th *material.Theme) D {
+func (rule *ruleItem) Layout(gtx C, p *RulesPage) D {
+	th := p.theme
 	separator := richtext.SpanStyle{
 		Content: " - ",
 		Color:   th.Fg,
@@ -203,6 +210,9 @@ func (rule *ruleItem) Layout(gtx C, th *material.Theme) D {
 		for i := range spans {
 			spans[i].Font.Weight = text.Bold
 		}
+	}
+	if rule.Clicked() {
+		p.editRule(rule.Rule)
 	}
 	dims := richtext.Text(&rule.InteractiveText, th.Shaper, spans...).Layout(gtx)
 	gtx.Constraints.Min = dims.Size
