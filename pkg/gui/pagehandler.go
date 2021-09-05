@@ -30,6 +30,10 @@ func (ph *PageHandler) AddPage(page Page) {
 	ph.tabs.AddTab(page.GetName(), page.Layout)
 }
 
+func (ph *PageHandler) SwitchToPage(idx int) {
+	ph.tabs.SwitchToTab(idx)
+}
+
 func (ph *PageHandler) ModalMessage(msg string) {
 	mbox := NewMessageBox(ph.theme, msg, func() {
 		ph.modal.Disappear(time.Now())

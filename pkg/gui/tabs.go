@@ -45,22 +45,28 @@ func (tabs *Tabs) AddTab(title string, content layout.Widget) {
 	tabs.tabs = append(tabs.tabs, tab{title: title, content: content})
 }
 
+func (tabs *Tabs) SwitchToTab(tabIdx int) {
+	if tabs.selected != tabIdx {
+		if tabs.selected < tabIdx {
+			tabs.slider.PushLeft()
+		} else if tabs.selected > tabIdx {
+			tabs.slider.PushRight()
+		}
+		tabs.selected = tabIdx
+		if tabs.onSelect != nil {
+			tabs.onSelect(tabIdx)
+		}
+	}
+}
+
 func (tabs *Tabs) Layout(gtx C) D {
 	gtx.Constraints.Min = gtx.Constraints.Max
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 		layout.Rigid(func(gtx C) D {
 			return tabs.list.Layout(gtx, len(tabs.tabs), func(gtx C, tabIdx int) D {
 				t := &tabs.tabs[tabIdx]
-				if t.btn.Clicked() && tabs.selected != tabIdx {
-					if tabs.selected < tabIdx {
-						tabs.slider.PushLeft()
-					} else if tabs.selected > tabIdx {
-						tabs.slider.PushRight()
-					}
-					tabs.selected = tabIdx
-					if tabs.onSelect != nil {
-						tabs.onSelect(tabIdx)
-					}
+				if t.btn.Clicked() {
+					tabs.SwitchToTab(tabIdx)
 				}
 				var tabWidth int
 				return layout.Stack{Alignment: layout.S}.Layout(gtx,
