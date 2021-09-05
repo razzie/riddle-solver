@@ -36,6 +36,10 @@ func NewApp(th *material.Theme, debug bool) *App {
 	addrulepage := NewAddRulePage(th, a.ph)
 	a.ph.AddPage(addrulepage)
 
+	rulespage := NewRulesPage(th, a.ph)
+	rulespage.SetRules(r.Rules)
+	a.ph.AddPage(rulespage)
+
 	return a
 }
 
