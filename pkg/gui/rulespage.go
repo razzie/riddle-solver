@@ -1,8 +1,6 @@
 package gui
 
 import (
-	"image"
-
 	"gioui.org/layout"
 	"gioui.org/text"
 	"gioui.org/unit"
@@ -48,10 +46,10 @@ func (p *RulesPage) Layout(gtx C) D {
 		p.editRule(new(riddle.Rule))
 	}
 	if p.btns.Clicked(1) {
-		p.modal.ModalYesNo("Are you sure?", p.Reset)
+		p.modal.ModalYesNo("Delete all rules?", p.Reset)
 	}
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-		layout.Rigid(func(gtx C) D {
+		layout.Flexed(1, func(gtx C) D {
 			if len(p.rules) == 0 {
 				return D{}
 			}
@@ -239,7 +237,7 @@ func (rule *ruleItem) Layout(gtx C, p *RulesPage) D {
 	deleteBtn := IconAndTextButton(th, &rule.deleteBtn, p.deleteIcon, "")
 	deleteBtn.Inset = layout.UniformInset(unit.Dp(1))
 	if rule.deleteBtn.Clicked() {
-		p.modal.ModalYesNo("Are you sure?", func() {
+		p.modal.ModalYesNo("Delete rule?", func() {
 			idx, _ := p.findRule(rule.Rule)
 			p.removeRule(idx, true)
 		})
@@ -254,9 +252,8 @@ func (rule *ruleItem) Layout(gtx C, p *RulesPage) D {
 			return dims
 		}),
 		layout.Rigid(func(gtx C) D {
-			return D{Size: image.Pt(gtx.Px(unit.Dp(5)), 0)}
+			return layout.Inset{Left: unit.Dp(8)}.Layout(gtx, deleteBtn.Layout)
 		}),
-		layout.Rigid(deleteBtn.Layout),
 	)
 	dims.Size.X = gtx.Constraints.Max.X
 	return dims

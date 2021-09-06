@@ -64,7 +64,6 @@ func NewApp(th *material.Theme, debug bool) *App {
 		addRule: addRule,
 		rules:   rules,
 	}
-	app.SetRiddle(riddle.NewEinsteinRiddle())
 	return app
 }
 

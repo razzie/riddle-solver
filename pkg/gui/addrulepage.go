@@ -25,8 +25,20 @@ type AddRulePage struct {
 
 func NewAddRulePage(th *material.Theme, modal ModalHandler) *AddRulePage {
 	return &AddRulePage{
-		theme:   th,
-		modal:   modal,
+		theme: th,
+		modal: modal,
+		itemA: TextField{
+			Editor: widget.Editor{SingleLine: true},
+		},
+		itemB: TextField{
+			Editor: widget.Editor{SingleLine: true},
+		},
+		conditionItemType: TextField{
+			Editor: widget.Editor{SingleLine: true},
+		},
+		conditionExpression: TextField{
+			Editor: widget.Editor{SingleLine: true},
+		},
 		buttons: NewButtonBar("Save", "Reset / new rule"),
 	}
 }

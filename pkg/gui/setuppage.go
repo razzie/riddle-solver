@@ -55,29 +55,29 @@ func (p *SetupPage) update() {
 func (p *SetupPage) Layout(gtx C) D {
 	p.update()
 
-	if p.list.FitsScreen() == p.list.ScrollToEnd {
-		p.list.ScrollToEnd = !p.list.FitsScreen()
-	}
-
 	gtx.Constraints.Min.X = gtx.Constraints.Max.X
 	in := layout.UniformInset(unit.Dp(5))
-	return p.list.Layout(gtx, p.theme, len(p.items)+1, func(gtx C, idx int) D {
-		if idx < len(p.items) {
-			return in.Layout(gtx, func(gtx C) D {
-				return p.items[idx].Layout(gtx, p.theme, idx)
+	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+		layout.Flexed(1, func(gtx C) D {
+			return p.list.Layout(gtx, p.theme, len(p.items), func(gtx C, idx int) D {
+				return in.Layout(gtx, func(gtx C) D {
+					return p.items[idx].Layout(gtx, p.theme, idx)
+				})
 			})
-		}
-		switch {
-		case p.buttons.Clicked(0):
-			p.Add()
-		case p.buttons.Clicked(1):
-			p.Save()
-		case p.buttons.Clicked(2):
-			p.modal.ModalYesNo("Are you sure?", p.Reset)
-		}
-		gtx.Constraints.Min.X = gtx.Constraints.Max.X
-		return p.buttons.Layout(gtx, p.theme)
-	})
+		}),
+		layout.Rigid(func(gtx C) D {
+			switch {
+			case p.buttons.Clicked(0):
+				p.Add()
+			case p.buttons.Clicked(1):
+				p.Save()
+			case p.buttons.Clicked(2):
+				p.modal.ModalYesNo("Reset setup?\nThis will remove all rules as well", p.Reset)
+			}
+			gtx.Constraints.Min.X = gtx.Constraints.Max.X
+			return p.buttons.Layout(gtx, p.theme)
+		}),
+	)
 }
 
 func (p *SetupPage) SetSaveFunc(saveFunc func(riddle.Setup)) {
@@ -171,17 +171,26 @@ func newSetupItem(p *SetupPage) setupItem {
 			Axis:      layout.Horizontal,
 			Alignment: layout.Middle,
 		},
+		itemType: TextField{
+			Editor: widget.Editor{SingleLine: true},
+		},
+		values: TextField{
+			Editor: widget.Editor{SingleLine: true},
+		},
 		deleteIcon: GetIcons().ActionDelete,
 		p:          p,
 	}
 }
 
 func (item *setupItem) Layout(gtx C, th *material.Theme, idx int) D {
-	in := layout.Inset{Left: unit.Dp(5)}
+	in := layout.Inset{Left: unit.Dp(8)}
 	maxWidth := gtx.Constraints.Max.X
 	gtx.Constraints.Min.X = maxWidth
 	widgets := [...]layout.Widget{
-		material.Label(th, th.TextSize, fmt.Sprintf("#%d", idx+1)).Layout,
+		func(gtx C) D {
+			gtx.Constraints.Min.X = gtx.Px(th.TextSize.Scale(2))
+			return material.Label(th, th.TextSize, fmt.Sprintf("#%d", idx+1)).Layout(gtx)
+		},
 		func(gtx C) D {
 			gtx.Constraints.Max.X = maxWidth / 3
 			return in.Layout(gtx, func(gtx C) D {
@@ -200,7 +209,10 @@ func (item *setupItem) Layout(gtx C, th *material.Theme, idx int) D {
 			} else if item.delete.Clicked() {
 				item.p.remove(idx)
 			}
-			return in.Layout(gtx, IconAndTextButton(th, &item.delete, item.deleteIcon, "").Layout)
+			btn := IconAndTextButton(th, &item.delete, item.deleteIcon, "")
+			btn.TextSize = th.TextSize.Scale(1.5)
+			btn.Inset = layout.UniformInset(unit.Dp(2))
+			return in.Layout(gtx, btn.Layout)
 		},
 	}
 	return item.list.Layout(gtx, len(widgets), func(gtx C, idx int) D {
