@@ -47,6 +47,7 @@ func NewApp(th *material.Theme, debug bool) *App {
 	addRule.SetSaveFunc(func(rule *riddle.Rule) {
 		rules.SaveRule(rule)
 		pages.ModalMessage("Saved")
+		pages.SwitchToPage(2)
 	})
 	rules.SetEditFunc(func(rule *riddle.Rule) {
 		addRule.EditRule(rule)

@@ -13,9 +13,12 @@ import (
 )
 
 type RulesPage struct {
-	theme      *material.Theme
-	modal      ModalHandler
-	list       ListWithScrollbar
+	theme *material.Theme
+	modal ModalHandler
+	list  ListWithScrollbar
+	//addRuleBtn widget.Clickable
+	btns       ButtonBar
+	addIcon    *widget.Icon
 	deleteIcon *widget.Icon
 	rules      []ruleItem
 	editFunc   func(*riddle.Rule)
@@ -30,12 +33,16 @@ type ruleItem struct {
 }
 
 func NewRulesPage(th *material.Theme, modal ModalHandler) *RulesPage {
-	return &RulesPage{
+	p := &RulesPage{
 		theme:      th,
 		modal:      modal,
 		list:       NewListWithScrollbar(),
+		btns:       NewButtonBar("Add rule"),
+		addIcon:    GetIcons().ContentAdd,
 		deleteIcon: GetIcons().ActionDelete,
 	}
+	p.btns.SetButtonIcon(0, p.addIcon)
+	return p
 }
 
 func (p *RulesPage) GetName() string {
@@ -47,6 +54,9 @@ func (p *RulesPage) Select() {
 }
 
 func (p *RulesPage) Layout(gtx C) D {
+	if p.btns.Clicked(0) {
+		p.editRule(new(riddle.Rule))
+	}
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 		layout.Rigid(func(gtx C) D {
 			return p.list.Layout(gtx, p.theme, len(p.rules), func(gtx C, idx int) D {
@@ -54,6 +64,10 @@ func (p *RulesPage) Layout(gtx C) D {
 				dims.Size.Y += gtx.Px(unit.Dp(12))
 				return dims
 			})
+		}),
+		//layout.Rigid(IconAndTextButton(p.theme, &p.addRuleBtn, p.addIcon, "Add rule").Layout),
+		layout.Rigid(func(gtx C) D {
+			return p.btns.Layout(gtx, p.theme)
 		}),
 	)
 }
