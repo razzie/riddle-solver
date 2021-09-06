@@ -1,6 +1,8 @@
 package gui
 
 import (
+	"image"
+
 	"gioui.org/layout"
 	"gioui.org/text"
 	"gioui.org/unit"
@@ -11,25 +13,28 @@ import (
 )
 
 type RulesPage struct {
-	theme    *material.Theme
-	modal    ModalHandler
-	list     ListWithScrollbar
-	rules    []ruleItem
-	editFunc func(*riddle.Rule)
-	saveFunc func([]riddle.Rule)
+	theme      *material.Theme
+	modal      ModalHandler
+	list       ListWithScrollbar
+	deleteIcon *widget.Icon
+	rules      []ruleItem
+	editFunc   func(*riddle.Rule)
+	saveFunc   func([]riddle.Rule)
 }
 
 type ruleItem struct {
 	widget.Clickable
 	richtext.InteractiveText
 	*riddle.Rule
+	deleteBtn widget.Clickable
 }
 
 func NewRulesPage(th *material.Theme, modal ModalHandler) *RulesPage {
 	return &RulesPage{
-		theme: th,
-		modal: modal,
-		list:  NewListWithScrollbar(),
+		theme:      th,
+		modal:      modal,
+		list:       NewListWithScrollbar(),
+		deleteIcon: GetIcons().ActionDelete,
 	}
 }
 
@@ -46,7 +51,6 @@ func (p *RulesPage) Layout(gtx C) D {
 		layout.Rigid(func(gtx C) D {
 			return p.list.Layout(gtx, p.theme, len(p.rules), func(gtx C, idx int) D {
 				dims := p.rules[idx].Layout(gtx, p)
-				dims.Size.X = gtx.Constraints.Max.X
 				dims.Size.Y += gtx.Px(unit.Dp(12))
 				return dims
 			})
@@ -184,7 +188,6 @@ func (rule *ruleItem) Layout(gtx C, p *RulesPage) D {
 	}
 	itemTypeA, itemValueA := rule.ItemA.Split()
 	itemTypeB, itemValueB := rule.ItemB.Split()
-
 	spans := []richtext.SpanStyle{
 		normal(itemTypeA + ":"),
 		colored(itemValueA),
@@ -206,6 +209,7 @@ func (rule *ruleItem) Layout(gtx C, p *RulesPage) D {
 			spans = append(spans, normal(" [reversible]"))
 		}
 	}
+
 	if rule.Hovered() {
 		for i := range spans {
 			spans[i].Font.Weight = text.Bold
@@ -214,9 +218,29 @@ func (rule *ruleItem) Layout(gtx C, p *RulesPage) D {
 	if rule.Clicked() {
 		p.editRule(rule.Rule)
 	}
-	dims := richtext.Text(&rule.InteractiveText, th.Shaper, spans...).Layout(gtx)
-	gtx.Constraints.Min = dims.Size
-	gtx.Constraints.Max = dims.Size
-	rule.Clickable.Layout(gtx)
+
+	deleteBtn := IconAndTextButton(th, &rule.deleteBtn, p.deleteIcon, "")
+	deleteBtn.Inset = layout.UniformInset(unit.Dp(1))
+	if rule.deleteBtn.Clicked() {
+		p.modal.ModalYesNo("Do you really want to remove this rule?", func() {
+			idx, _ := p.findRule(rule.Rule)
+			p.removeRule(idx, true)
+		})
+	}
+
+	dims := layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
+		layout.Rigid(func(gtx C) D {
+			dims := richtext.Text(&rule.InteractiveText, th.Shaper, spans...).Layout(gtx)
+			gtx.Constraints.Min = dims.Size
+			gtx.Constraints.Max = dims.Size
+			rule.Clickable.Layout(gtx)
+			return dims
+		}),
+		layout.Rigid(func(gtx C) D {
+			return D{Size: image.Pt(gtx.Px(unit.Dp(5)), 0)}
+		}),
+		layout.Rigid(deleteBtn.Layout),
+	)
+	dims.Size.X = gtx.Constraints.Max.X
 	return dims
 }
