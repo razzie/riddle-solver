@@ -92,7 +92,7 @@ func (p *SetupPage) GetSetup() (riddle.Setup, error) {
 		itemType := item.itemType.Text()
 		values := strings.Split(item.values.Text(), ",")
 		if len(itemType) == 0 {
-			if len(values) > 0 {
+			if len(values) > 0 && len(values[0]) > 0 {
 				return nil, fmt.Errorf("cannot have values without item type")
 			}
 			continue
@@ -154,6 +154,7 @@ func (p *SetupPage) Save() {
 
 func (p *SetupPage) Reset() {
 	p.items = []setupItem{newSetupItem(p)}
+	p.Save()
 }
 
 type setupItem struct {

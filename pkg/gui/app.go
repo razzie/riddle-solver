@@ -24,34 +24,33 @@ type App struct {
 
 func NewApp(th *material.Theme, debug bool) *App {
 	pages := NewPageHandler(th)
-	//pages.tabs.AddTab("test tab", nil)
 
 	setup := NewSetupPage(th, pages)
 	pages.AddPage(setup)
 
 	addRule := NewAddRulePage(th, pages)
-	pages.AddPage(addRule)
+	addRulePageIdx := pages.AddPage(addRule)
 
 	rules := NewRulesPage(th, pages)
-	pages.AddPage(rules)
+	rulesPageIdx := pages.AddPage(rules)
 
 	setup.SetSaveFunc(func(setup riddle.Setup) {
 		addRule.HandleSetup(setup)
 		rules.HandleSetup(setup)
 		//results.HandleSetup(setup)
 		//solverdebug.HandleSetup(setup)
-		/*if len(setup) > 0 {
-			pages.SwitchToPage(1)
-		}*/
+		if len(setup) > 0 {
+			pages.SwitchToPage(rulesPageIdx)
+		}
 	})
 	addRule.SetSaveFunc(func(rule *riddle.Rule) {
 		rules.SaveRule(rule)
 		pages.ModalMessage("Saved")
-		pages.SwitchToPage(2)
+		pages.SwitchToPage(rulesPageIdx)
 	})
 	rules.SetEditFunc(func(rule *riddle.Rule) {
 		addRule.EditRule(rule)
-		pages.SwitchToPage(1)
+		pages.SwitchToPage(addRulePageIdx)
 	})
 	rules.SetSaveFunc(func(rules []riddle.Rule) {
 		//results.HandleRules(rules)
