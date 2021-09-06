@@ -25,9 +25,9 @@ func NewPageHandler(th *material.Theme) *PageHandler {
 	return ph
 }
 
-func (ph *PageHandler) AddPage(page Page) {
+func (ph *PageHandler) AddPage(page Page) int {
 	ph.pages = append(ph.pages, page)
-	ph.tabs.AddTab(page.GetName(), page.Layout)
+	return ph.tabs.AddTab(page.GetName(), page.Layout)
 }
 
 func (ph *PageHandler) SwitchToPage(idx int) {

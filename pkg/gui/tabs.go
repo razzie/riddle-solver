@@ -41,8 +41,9 @@ func (tabs *Tabs) SetSelectFunc(onSelect func(int)) {
 	tabs.onSelect = onSelect
 }
 
-func (tabs *Tabs) AddTab(title string, content layout.Widget) {
+func (tabs *Tabs) AddTab(title string, content layout.Widget) int {
 	tabs.tabs = append(tabs.tabs, tab{title: title, content: content})
+	return len(tabs.tabs) - 1
 }
 
 func (tabs *Tabs) SwitchToTab(tabIdx int) {
