@@ -13,12 +13,10 @@ import (
 )
 
 type RulesPage struct {
-	theme *material.Theme
-	modal ModalHandler
-	list  ListWithScrollbar
-	//addRuleBtn widget.Clickable
+	theme      *material.Theme
+	modal      ModalHandler
+	list       ListWithScrollbar
 	btns       ButtonBar
-	addIcon    *widget.Icon
 	deleteIcon *widget.Icon
 	rules      []ruleItem
 	editFunc   func(*riddle.Rule)
@@ -37,11 +35,10 @@ func NewRulesPage(th *material.Theme, modal ModalHandler) *RulesPage {
 		theme:      th,
 		modal:      modal,
 		list:       NewListWithScrollbar(),
-		btns:       NewButtonBar("Add rule"),
-		addIcon:    GetIcons().ContentAdd,
+		btns:       NewButtonBar("Add rule", "Reset"),
 		deleteIcon: GetIcons().ActionDelete,
 	}
-	p.btns.SetButtonIcon(0, p.addIcon)
+	p.btns.SetButtonIcon(0, GetIcons().ContentAdd)
 	return p
 }
 
@@ -57,15 +54,20 @@ func (p *RulesPage) Layout(gtx C) D {
 	if p.btns.Clicked(0) {
 		p.editRule(new(riddle.Rule))
 	}
+	if p.btns.Clicked(1) {
+		p.modal.ModalYesNo("Are you sure?", p.Reset)
+	}
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 		layout.Rigid(func(gtx C) D {
+			if len(p.rules) == 0 {
+				return D{}
+			}
 			return p.list.Layout(gtx, p.theme, len(p.rules), func(gtx C, idx int) D {
 				dims := p.rules[idx].Layout(gtx, p)
 				dims.Size.Y += gtx.Px(unit.Dp(12))
 				return dims
 			})
 		}),
-		//layout.Rigid(IconAndTextButton(p.theme, &p.addRuleBtn, p.addIcon, "Add rule").Layout),
 		layout.Rigid(func(gtx C) D {
 			return p.btns.Layout(gtx, p.theme)
 		}),
@@ -177,6 +179,7 @@ func (p *RulesPage) SetSaveFunc(saveFunc func([]riddle.Rule)) {
 
 func (p *RulesPage) Reset() {
 	p.rules = nil
+	p.Save()
 }
 
 func (rule *ruleItem) Layout(gtx C, p *RulesPage) D {
@@ -236,7 +239,7 @@ func (rule *ruleItem) Layout(gtx C, p *RulesPage) D {
 	deleteBtn := IconAndTextButton(th, &rule.deleteBtn, p.deleteIcon, "")
 	deleteBtn.Inset = layout.UniformInset(unit.Dp(1))
 	if rule.deleteBtn.Clicked() {
-		p.modal.ModalYesNo("Do you really want to remove this rule?", func() {
+		p.modal.ModalYesNo("Are you sure?", func() {
 			idx, _ := p.findRule(rule.Rule)
 			p.removeRule(idx, true)
 		})
