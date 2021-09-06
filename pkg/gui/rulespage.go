@@ -23,13 +23,6 @@ type RulesPage struct {
 	saveFunc   func([]riddle.Rule)
 }
 
-type ruleItem struct {
-	widget.Clickable
-	richtext.InteractiveText
-	*riddle.Rule
-	deleteBtn widget.Clickable
-}
-
 func NewRulesPage(th *material.Theme, modal ModalHandler) *RulesPage {
 	p := &RulesPage{
 		theme:      th,
@@ -180,6 +173,13 @@ func (p *RulesPage) SetSaveFunc(saveFunc func([]riddle.Rule)) {
 func (p *RulesPage) Reset() {
 	p.rules = nil
 	p.Save()
+}
+
+type ruleItem struct {
+	widget.Clickable
+	richtext.InteractiveText
+	*riddle.Rule
+	deleteBtn widget.Clickable
 }
 
 func (rule *ruleItem) Layout(gtx C, p *RulesPage) D {

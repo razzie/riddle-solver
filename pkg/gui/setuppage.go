@@ -8,7 +8,6 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
-	"gioui.org/x/component"
 	"github.com/razzie/riddle-solver/pkg/riddle"
 )
 
@@ -159,8 +158,8 @@ func (p *SetupPage) Reset() {
 
 type setupItem struct {
 	list       layout.List
-	itemType   component.TextField
-	values     component.TextField
+	itemType   TextField
+	values     TextField
 	delete     widget.Clickable
 	deleteIcon *widget.Icon
 	p          *SetupPage
@@ -186,13 +185,13 @@ func (item *setupItem) Layout(gtx C, th *material.Theme, idx int) D {
 		func(gtx C) D {
 			gtx.Constraints.Max.X = maxWidth / 3
 			return in.Layout(gtx, func(gtx C) D {
-				return item.itemType.Layout(gtx, th, "item type")
+				return item.itemType.Layout(gtx, th, "item type", "e.g. color")
 			})
 		},
 		func(gtx C) D {
 			gtx.Constraints.Max.X = maxWidth / 2
 			return in.Layout(gtx, func(gtx C) D {
-				return item.values.Layout(gtx, th, "values (comma separated)")
+				return item.values.Layout(gtx, th, "values", "e.g. red, green, blue")
 			})
 		},
 		func(gtx C) D {

@@ -4,19 +4,18 @@ import (
 	"gioui.org/layout"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
-	"gioui.org/x/component"
 	"github.com/razzie/riddle-solver/pkg/riddle"
 )
 
 type AddRulePage struct {
 	theme               *material.Theme
 	modal               ModalHandler
-	itemA               component.TextField
-	itemB               component.TextField
+	itemA               TextField
+	itemB               TextField
 	relation            widget.Enum
 	hasCondition        widget.Bool
-	conditionItemType   component.TextField
-	conditionExpression component.TextField
+	conditionItemType   TextField
+	conditionExpression TextField
 	conditionReversible widget.Bool
 	buttons             ButtonBar
 	rule                *riddle.Rule
@@ -28,7 +27,7 @@ func NewAddRulePage(th *material.Theme, modal ModalHandler) *AddRulePage {
 	return &AddRulePage{
 		theme:   th,
 		modal:   modal,
-		buttons: NewButtonBar("Save", "Reset"),
+		buttons: NewButtonBar("Save", "Reset / new rule"),
 	}
 }
 
@@ -45,17 +44,17 @@ func (p *AddRulePage) Layout(gtx C) D {
 		p.Save()
 	}
 	if p.buttons.Clicked(1) {
-		p.modal.ModalYesNo("Are you sure?", p.Reset)
+		p.Reset()
 	}
 
 	items := []layout.FlexChild{
 		layout.Rigid(func(gtx C) D {
 			gtx.Constraints.Max.X /= 2
-			return p.itemA.Layout(gtx, p.theme, "Item A")
+			return p.itemA.Layout(gtx, p.theme, "Item A", "e.g. color:red")
 		}),
 		layout.Rigid(func(gtx C) D {
 			gtx.Constraints.Max.X /= 2
-			return p.itemB.Layout(gtx, p.theme, "Item B")
+			return p.itemB.Layout(gtx, p.theme, "Item B", "e.g. color:red")
 		}),
 		layout.Rigid(func(gtx C) D {
 			return layout.Flex{}.Layout(gtx,
@@ -69,10 +68,10 @@ func (p *AddRulePage) Layout(gtx C) D {
 		extraItems := []layout.FlexChild{
 			layout.Rigid(func(gtx C) D {
 				gtx.Constraints.Max.X /= 2
-				return p.conditionItemType.Layout(gtx, p.theme, "Condition item type")
+				return p.conditionItemType.Layout(gtx, p.theme, "Condition item type", "e.g. position")
 			}),
 			layout.Rigid(func(gtx C) D {
-				return p.conditionExpression.Layout(gtx, p.theme, "Condition expression")
+				return p.conditionExpression.Layout(gtx, p.theme, "Condition expression", "e.g. (A == B - 1) || (A == B + 1)")
 			}),
 			layout.Rigid(material.CheckBox(p.theme, &p.conditionReversible, "Reversible A <-> B").Layout),
 		}
