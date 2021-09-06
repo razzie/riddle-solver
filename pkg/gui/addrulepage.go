@@ -33,7 +33,7 @@ func NewAddRulePage(th *material.Theme, modal ModalHandler) *AddRulePage {
 }
 
 func (p *AddRulePage) GetName() string {
-	return "Add rule"
+	return ""
 }
 
 func (p *AddRulePage) Select() {

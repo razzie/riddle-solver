@@ -65,6 +65,9 @@ func (tabs *Tabs) Layout(gtx C) D {
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 		layout.Rigid(func(gtx C) D {
 			return tabs.list.Layout(gtx, len(tabs.tabs), func(gtx C, tabIdx int) D {
+				if len(tabs.tabs[tabIdx].title) == 0 {
+					return D{}
+				}
 				t := &tabs.tabs[tabIdx]
 				if t.btn.Clicked() {
 					tabs.SwitchToTab(tabIdx)
