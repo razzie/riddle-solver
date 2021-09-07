@@ -20,6 +20,7 @@ func NewPageHandler(th *material.Theme) *PageHandler {
 		theme: th,
 		tabs:  NewTabs(th),
 	}
+	ph.tabs.SetSelectFunc(ph.selectPage)
 	ph.modal.VisibilityAnimation.Duration = time.Millisecond * 250
 	ph.modal.VisibilityAnimation.State = component.Invisible
 	return ph
@@ -57,4 +58,8 @@ func (ph *PageHandler) Layout(gtx C) D {
 		layout.Stacked(ph.tabs.Layout),
 		layout.Stacked(component.Modal(ph.theme, &ph.modal).Layout),
 	)
+}
+
+func (ph *PageHandler) selectPage(idx int) {
+	ph.pages[idx].Select()
 }
