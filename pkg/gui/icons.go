@@ -13,8 +13,10 @@ var (
 )
 
 type Icons struct {
-	ContentAdd   *widget.Icon
-	ActionDelete *widget.Icon
+	ContentAdd            *widget.Icon
+	ActionDelete          *widget.Icon
+	CheckBoxBlank         *widget.Icon
+	CheckBoxIndeterminate *widget.Icon
 }
 
 func GetIcons() *Icons {
@@ -22,6 +24,8 @@ func GetIcons() *Icons {
 		icns = new(Icons)
 		icns.ContentAdd, _ = widget.NewIcon(icons.ContentAdd)
 		icns.ActionDelete, _ = widget.NewIcon(icons.ActionDelete)
+		icns.CheckBoxBlank, _ = widget.NewIcon(icons.ToggleCheckBoxOutlineBlank)
+		icns.CheckBoxIndeterminate, _ = widget.NewIcon(icons.ToggleIndeterminateCheckBox)
 	})
 	return icns
 }
