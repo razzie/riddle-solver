@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"io"
 	"path/filepath"
 
 	"gioui.org/layout"
@@ -8,6 +9,7 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"gioui.org/x/explorer"
 	"gioui.org/x/richtext"
 	"github.com/razzie/riddle-solver/pkg/riddle"
 )
@@ -63,7 +65,7 @@ func (p *LoadPage) Select() {
 
 func (p *LoadPage) Layout(gtx C) D {
 	if p.btns.Clicked(0) {
-		p.modal.ModalMessage("Not implemented yet")
+		p.loadFromExplorer()
 	}
 	if p.btns.Clicked(1) {
 		p.Select()
@@ -84,6 +86,46 @@ func (p *LoadPage) Layout(gtx C) D {
 
 func (p *LoadPage) SetRiddleSetter(setter func(*riddle.Riddle) error) {
 	p.setter = setter
+}
+
+func (p *LoadPage) loadFromExplorer() {
+	reader, err := explorer.ReadFile()
+	if err != nil {
+		p.modal.ModalMessage(err.Error())
+		return
+	}
+	defer reader.Close()
+
+	bytes, err := io.ReadAll(reader)
+	if err != nil {
+		p.modal.ModalMessage(err.Error())
+		return
+	}
+
+	r, err := riddle.LoadRiddle(bytes)
+	if err != nil {
+		p.modal.ModalMessage(err.Error())
+		return
+	}
+
+	p.loadRiddle(r)
+}
+
+func (p *LoadPage) loadItem(item *loadPageItem) {
+	r, err := item.Loader()
+	if err != nil {
+		p.modal.ModalMessage(err.Error())
+		return
+	}
+	p.loadRiddle(r)
+}
+
+func (p *LoadPage) loadRiddle(r *riddle.Riddle) {
+	if p.setter != nil {
+		if err := p.setter(r); err != nil {
+			p.modal.ModalMessage(err.Error())
+		}
+	}
 }
 
 type loadPageItem struct {
@@ -126,14 +168,7 @@ func (item *loadPageItem) Layout(gtx C, p *LoadPage) D {
 		}
 	}
 	if item.Clicked() {
-		r, err := item.Loader()
-		if err != nil {
-			p.modal.ModalMessage(err.Error())
-		} else if p.setter != nil {
-			if err := p.setter(r); err != nil {
-				p.modal.ModalMessage(err.Error())
-			}
-		}
+		p.loadItem(item)
 	}
 	dims := layout.Flex{Axis: layout.Horizontal}.Layout(gtx,
 		layout.Rigid(func(gtx C) D {
