@@ -45,6 +45,9 @@ func NewApp(th *material.Theme, debug bool) *App {
 	load := NewLoadPage(th, pages)
 	pages.AddPage(load)
 
+	save := NewSavePage(th, pages)
+	pages.AddPage(save)
+
 	setup.SetSaveFunc(func(setup riddle.Setup) {
 		addRule.HandleSetup(setup)
 		rules.HandleSetup(setup)
@@ -76,6 +79,7 @@ func NewApp(th *material.Theme, debug bool) *App {
 		rules:   rules,
 	}
 	load.SetRiddleSetter(app.SetRiddle)
+	save.SetRiddleGetter(app.GetRiddle)
 	return app
 }
 
@@ -89,6 +93,19 @@ func (app *App) Run() error {
 	}()
 	gioapp.Main()
 	return nil
+}
+
+func (app *App) GetRiddle() (*riddle.Riddle, error) {
+	rules := app.rules.GetRules()
+	setup, err := app.setup.GetSetup()
+	if err != nil {
+		return nil, err
+	}
+
+	return &riddle.Riddle{
+		Setup: setup,
+		Rules: rules,
+	}, nil
 }
 
 func (app *App) SetRiddle(r *riddle.Riddle) error {
