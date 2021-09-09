@@ -20,10 +20,11 @@ type ResultsPage struct {
 
 func NewResultsPage(th *material.Theme, modal ModalHandler) *ResultsPage {
 	return &ResultsPage{
-		theme:   th,
-		modal:   modal,
-		results: Tree{Name: "Results"},
-		dirty:   true,
+		theme:     th,
+		modal:     modal,
+		scrollbar: NewListWithScrollbar(),
+		results:   Tree{Name: "Results"},
+		dirty:     true,
 	}
 }
 
@@ -61,8 +62,8 @@ func (p *ResultsPage) Select() {
 
 func (p *ResultsPage) Layout(gtx C) D {
 	return p.scrollbar.Layout(gtx, p.theme, 1, func(gtx C, idx int) D {
-		gtx.Constraints.Min = gtx.Constraints.Max
-		return p.results.layout(gtx, p.theme)
+		gtx.Constraints.Min.X = gtx.Constraints.Max.X
+		return p.results.Layout(gtx, p.theme)
 	})
 }
 
