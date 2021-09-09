@@ -4,16 +4,26 @@ import (
 	"gioui.org/layout"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"gioui.org/x/richtext"
 )
 
 type Tree struct {
 	widget.Bool
-	Name     string
+	Label    []TreeLabel
 	Children []*Tree
 }
 
-func (tree *Tree) AddChild(name string) *Tree {
-	child := &Tree{Name: name}
+type TreeLabel struct {
+	Text      string
+	Highlight bool
+}
+
+func NewTree(label ...TreeLabel) Tree {
+	return Tree{Label: label}
+}
+
+func (tree *Tree) AddChild(label ...TreeLabel) *Tree {
+	child := &Tree{Label: label}
 	tree.Children = append(tree.Children, child)
 	return child
 }
@@ -30,8 +40,20 @@ func (tree *Tree) layout(gtx C, th *material.Theme) D {
 	if len(tree.Children) == 0 {
 		gtx.Queue = nil
 	}
+	spans := make([]richtext.SpanStyle, len(tree.Label))
+	for i, span := range tree.Label {
+		color := th.Fg
+		if span.Highlight {
+			color = th.ContrastBg
+		}
+		spans[i] = richtext.SpanStyle{
+			Size:    th.TextSize.Scale(14.0 / 16.0),
+			Color:   color,
+			Content: span.Text,
+		}
+	}
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-		layout.Rigid(material.CheckBox(th, &tree.Bool, tree.Name).Layout),
+		layout.Rigid(RichTextCheckBox(th, &tree.Bool, spans...).Layout),
 		layout.Rigid(func(gtx C) D {
 			if !tree.Value {
 				return D{}
@@ -51,9 +73,8 @@ func (tree *Tree) layout(gtx C, th *material.Theme) D {
 }
 
 func convertToTreeTheme(th *material.Theme) *material.Theme {
-	clone := new(material.Theme)
-	*clone = *th
-	clone.Icon.CheckBoxChecked = GetIcons().CheckBoxIndeterminate
-	clone.Icon.CheckBoxUnchecked = GetIcons().CheckBoxBlank
-	return clone
+	clone := *th
+	clone.Icon.CheckBoxChecked = GetIcons().ArrowDown
+	clone.Icon.CheckBoxUnchecked = GetIcons().ArrowRight
+	return &clone
 }

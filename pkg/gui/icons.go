@@ -17,6 +17,10 @@ type Icons struct {
 	ActionDelete          *widget.Icon
 	CheckBoxBlank         *widget.Icon
 	CheckBoxIndeterminate *widget.Icon
+	ArrowLeft             *widget.Icon
+	ArrowRight            *widget.Icon
+	ArrowUp               *widget.Icon
+	ArrowDown             *widget.Icon
 }
 
 func GetIcons() *Icons {
@@ -26,6 +30,10 @@ func GetIcons() *Icons {
 		icns.ActionDelete, _ = widget.NewIcon(icons.ActionDelete)
 		icns.CheckBoxBlank, _ = widget.NewIcon(icons.ToggleCheckBoxOutlineBlank)
 		icns.CheckBoxIndeterminate, _ = widget.NewIcon(icons.ToggleIndeterminateCheckBox)
+		icns.ArrowLeft, _ = widget.NewIcon(icons.HardwareKeyboardArrowLeft)
+		icns.ArrowRight, _ = widget.NewIcon(icons.HardwareKeyboardArrowRight)
+		icns.ArrowUp, _ = widget.NewIcon(icons.HardwareKeyboardArrowUp)
+		icns.ArrowDown, _ = widget.NewIcon(icons.HardwareKeyboardArrowDown)
 	})
 	return icns
 }
