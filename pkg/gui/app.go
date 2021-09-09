@@ -42,6 +42,9 @@ func NewApp(th *material.Theme, debug bool) *App {
 		pages.AddPage(solverdebug)
 	}
 
+	load := NewLoadPage(th, pages)
+	pages.AddPage(load)
+
 	setup.SetSaveFunc(func(setup riddle.Setup) {
 		addRule.HandleSetup(setup)
 		rules.HandleSetup(setup)
@@ -72,6 +75,7 @@ func NewApp(th *material.Theme, debug bool) *App {
 		addRule: addRule,
 		rules:   rules,
 	}
+	load.SetRiddleSetter(app.SetRiddle)
 	return app
 }
 
