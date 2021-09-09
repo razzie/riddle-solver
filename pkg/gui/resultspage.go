@@ -45,6 +45,7 @@ func (p *ResultsPage) Select() {
 	}
 
 	p.dirty = false
+	p.results.Bool.Value = true
 	p.results.ClearChildren()
 
 	for itemType, values := range p.setup {
@@ -76,6 +77,7 @@ func (p *ResultsPage) Layout(gtx C) D {
 
 func (p *ResultsPage) HandleSetup(setup riddle.Setup) {
 	p.setup = setup
+	p.dirty = true
 }
 
 func (p *ResultsPage) HandleRules(rules []riddle.Rule) {

@@ -37,11 +37,16 @@ func NewApp(th *material.Theme, debug bool) *App {
 	results := NewResultsPage(th, pages)
 	pages.AddPage(results)
 
+	solverdebug := NewDebugPage(th, pages)
+	if debug {
+		pages.AddPage(solverdebug)
+	}
+
 	setup.SetSaveFunc(func(setup riddle.Setup) {
 		addRule.HandleSetup(setup)
 		rules.HandleSetup(setup)
 		results.HandleSetup(setup)
-		//solverdebug.HandleSetup(setup)
+		solverdebug.HandleSetup(setup)
 		if len(setup) > 0 {
 			pages.SwitchToPage(rulesPageIdx)
 		}
@@ -57,7 +62,7 @@ func NewApp(th *material.Theme, debug bool) *App {
 	})
 	rules.SetSaveFunc(func(rules []riddle.Rule) {
 		results.HandleRules(rules)
-		//solverdebug.HandleRules(rules)
+		solverdebug.HandleRules(rules)
 	})
 
 	app := &App{
