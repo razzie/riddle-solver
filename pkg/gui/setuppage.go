@@ -58,6 +58,9 @@ func (p *SetupPage) Layout(gtx C) D {
 	in := layout.UniformInset(unit.Dp(5))
 	return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 		layout.Flexed(1, func(gtx C) D {
+			if len(p.items) == 0 {
+				return D{Size: gtx.Constraints.Max}
+			}
 			return p.list.Layout(gtx, p.theme, len(p.items), func(gtx C, idx int) D {
 				return in.Layout(gtx, func(gtx C) D {
 					return p.items[idx].Layout(gtx, p.theme, idx)
