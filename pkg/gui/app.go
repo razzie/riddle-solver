@@ -11,7 +11,7 @@ import (
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/widget/material"
-	"github.com/gen2brain/dlgs"
+	"github.com/razzie/dlgs"
 	"github.com/razzie/razgio"
 	"github.com/razzie/riddle-solver/pkg/riddle"
 )
