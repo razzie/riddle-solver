@@ -32,7 +32,14 @@ Einstein wrote this riddle this century. He said that 98% of the world could not
 
 ## Screenshots
 
+### ``riddle-solver-tui``
 ![Screenshot](screenshots/01.png)
 ![Screenshot](screenshots/02.png)
 ![Screenshot](screenshots/03.png)
 ![Screenshot](screenshots/04.png)
+
+### ``riddle-solver-gui``
+![Screenshot](screenshots/05.png)
+![Screenshot](screenshots/06.png)
+![Screenshot](screenshots/07.png)
+![Screenshot](screenshots/08.png)
