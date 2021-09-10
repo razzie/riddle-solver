@@ -56,24 +56,42 @@ func (c *Cache) lookup(font Font) *faceCache {
 }
 
 func (c *Cache) faceForStyle(font Font) *faceCache {
-	tf := c.faces[font]
-	if tf == nil {
-		font := font
-		font.Weight = Normal
-		tf = c.faces[font]
+	if closest, ok := c.closestFont(font); ok {
+		return c.faces[closest]
 	}
-	if tf == nil {
-		font := font
-		font.Style = Regular
-		tf = c.faces[font]
+	font.Style = Regular
+	if closest, ok := c.closestFont(font); ok {
+		return c.faces[closest]
 	}
-	if tf == nil {
-		font := font
-		font.Style = Regular
-		font.Weight = Normal
-		tf = c.faces[font]
+	return nil
+}
+
+// closestFont returns the closest Font by weight, in case of equality the
+// lighter weight will be returned.
+func (c *Cache) closestFont(lookup Font) (Font, bool) {
+	if c.faces[lookup] != nil {
+		return lookup, true
 	}
-	return tf
+	found := false
+	var match Font
+	for cf := range c.faces {
+		if cf.Typeface != lookup.Typeface || cf.Variant != lookup.Variant || cf.Style != lookup.Style {
+			continue
+		}
+		if !found {
+			found = true
+			match = cf
+			continue
+		}
+		cDist := weightDistance(lookup.Weight, cf.Weight)
+		mDist := weightDistance(lookup.Weight, match.Weight)
+		if cDist < mDist {
+			match = cf
+		} else if cDist == mDist && cf.Weight < match.Weight {
+			match = cf
+		}
+	}
+	return match, found
 }
 
 func NewCache(collection []FontFace) *Cache {
@@ -90,21 +108,21 @@ func NewCache(collection []FontFace) *Cache {
 }
 
 // Layout implements the Shaper interface.
-func (s *Cache) Layout(font Font, size fixed.Int26_6, maxWidth int, txt io.Reader) ([]Line, error) {
-	cache := s.lookup(font)
+func (c *Cache) Layout(font Font, size fixed.Int26_6, maxWidth int, txt io.Reader) ([]Line, error) {
+	cache := c.lookup(font)
 	return cache.face.Layout(size, maxWidth, txt)
 }
 
 // LayoutString is a caching implementation of the Shaper interface.
-func (s *Cache) LayoutString(font Font, size fixed.Int26_6, maxWidth int, str string) []Line {
-	cache := s.lookup(font)
+func (c *Cache) LayoutString(font Font, size fixed.Int26_6, maxWidth int, str string) []Line {
+	cache := c.lookup(font)
 	return cache.layout(size, maxWidth, str)
 }
 
 // Shape is a caching implementation of the Shaper interface. Shape assumes that the layout
 // argument is unchanged from a call to Layout or LayoutString.
-func (s *Cache) Shape(font Font, size fixed.Int26_6, layout Layout) op.CallOp {
-	cache := s.lookup(font)
+func (c *Cache) Shape(font Font, size fixed.Int26_6, layout Layout) op.CallOp {
+	cache := c.lookup(font)
 	return cache.shape(size, layout)
 }
 

@@ -32,8 +32,11 @@ type Backend struct {
 	// textures.
 	floatTriple textureTriple
 	// Single channel alpha textures.
-	alphaTriple textureTriple
-	srgbaTriple textureTriple
+	alphaTriple  textureTriple
+	srgbaTriple  textureTriple
+	vertUniforms *buffer
+	fragUniforms *buffer
+	storage      [storageBindings]*buffer
 
 	sRGBFBO *SRGBFBO
 
@@ -77,18 +80,17 @@ type glState struct {
 	clearColor        [4]float32
 	viewport          [4]int
 	unpack_row_length int
+	pack_row_length   int
 }
 
 type state struct {
-	prog   *program
-	layout *inputLayout
-	buffer bufferBinding
+	pipeline *pipeline
+	buffer   bufferBinding
 }
 
 type bufferBinding struct {
 	obj    gl.Buffer
 	offset int
-	stride int
 }
 
 type timer struct {
@@ -110,6 +112,13 @@ type framebuffer struct {
 	foreign bool
 }
 
+type pipeline struct {
+	prog   *program
+	inputs []shader.InputLocation
+	layout driver.VertexLayout
+	blend  driver.BlendDesc
+}
+
 type buffer struct {
 	backend   *Backend
 	hasBuffer bool
@@ -117,24 +126,26 @@ type buffer struct {
 	typ       driver.BufferBinding
 	size      int
 	immutable bool
-	version   int
 	// For emulation of uniform buffers.
 	data []byte
+}
+
+type glshader struct {
+	backend *Backend
+	obj     gl.Shader
+	src     shader.Sources
 }
 
 type program struct {
 	backend      *Backend
 	obj          gl.Program
-	vertUniforms uniformsTracker
-	fragUniforms uniformsTracker
-	storage      [storageBindings]*buffer
+	vertUniforms uniforms
+	fragUniforms uniforms
 }
 
-type uniformsTracker struct {
-	locs    []uniformLocation
-	size    int
-	buf     *buffer
-	version int
+type uniforms struct {
+	locs []uniformLocation
+	size int
 }
 
 type uniformLocation struct {
@@ -146,7 +157,7 @@ type uniformLocation struct {
 
 type inputLayout struct {
 	inputs []shader.InputLocation
-	layout []shader.InputDesc
+	layout []driver.InputDesc
 }
 
 // textureTriple holds the type settings for
@@ -257,7 +268,7 @@ func (b *Backend) BeginFrame(target driver.RenderTarget, clear bool, viewport im
 	}
 	b.glstate.bindFramebuffer(b.funcs, gl.FRAMEBUFFER, renderFBO)
 	if b.sRGBFBO != nil && !clear {
-		b.Clear(0, 0, 0, 0)
+		b.clearOutput(0, 0, 0, 0)
 	}
 	return &framebuffer{backend: b, obj: renderFBO, foreign: true}
 }
@@ -287,6 +298,7 @@ func (b *Backend) queryState() glState {
 		clearColor:        b.funcs.GetFloat4(gl.COLOR_CLEAR_VALUE),
 		viewport:          b.funcs.GetInteger4(gl.VIEWPORT),
 		unpack_row_length: b.funcs.GetInteger(gl.UNPACK_ROW_LENGTH),
+		pack_row_length:   b.funcs.GetInteger(gl.PACK_ROW_LENGTH),
 	}
 	s.blend.enable = b.funcs.IsEnabled(gl.BLEND)
 	s.blend.srcRGB = gl.Enum(b.funcs.GetInteger(gl.BLEND_SRC_RGB))
@@ -362,6 +374,7 @@ func (b *Backend) restoreState(dst glState) {
 	v := dst.viewport
 	src.setViewport(f, v[0], v[1], v[2], v[3])
 	src.pixelStorei(f, gl.UNPACK_ROW_LENGTH, dst.unpack_row_length)
+	src.pixelStorei(f, gl.PACK_ROW_LENGTH, dst.pack_row_length)
 }
 
 func (s *glState) setVertexAttribArray(f *gl.Functions, idx int, enabled bool) {
@@ -564,13 +577,21 @@ func (s *glState) bindBuffer(f *gl.Functions, target gl.Enum, buf gl.Buffer) {
 }
 
 func (s *glState) pixelStorei(f *gl.Functions, pname gl.Enum, val int) {
-	if pname != gl.UNPACK_ROW_LENGTH {
+	switch pname {
+	case gl.UNPACK_ROW_LENGTH:
+		if val == s.unpack_row_length {
+			return
+		}
+		s.unpack_row_length = val
+	case gl.PACK_ROW_LENGTH:
+		if val == s.pack_row_length {
+			return
+		}
+		s.pack_row_length = val
+	default:
 		panic("unsupported PixelStorei pname")
 	}
-	if val != s.unpack_row_length {
-		f.PixelStorei(pname, val)
-		s.unpack_row_length = val
-	}
+	f.PixelStorei(pname, val)
 }
 
 func (s *glState) setClearColor(f *gl.Functions, r, g, b, a float32) {
@@ -641,7 +662,7 @@ func (b *Backend) NewFramebuffer(tex driver.Texture) (driver.Framebuffer, error)
 	gltex := tex.(*texture)
 	fb := b.funcs.CreateFramebuffer()
 	fbo := &framebuffer{backend: b, obj: fb}
-	b.BindFramebuffer(fbo)
+	b.BindFramebuffer(fbo, driver.LoadDesc{})
 	if err := glErr(b.funcs); err != nil {
 		fbo.Release()
 		return nil, err
@@ -706,7 +727,7 @@ func (b *Backend) NewBuffer(typ driver.BufferBinding, size int) (driver.Buffer, 
 		}
 		firstBinding := firstBufferType(typ)
 		b.glstate.bindBuffer(b.funcs, firstBinding, buf.obj)
-		b.funcs.BufferData(firstBinding, size, gl.DYNAMIC_DRAW)
+		b.funcs.BufferData(firstBinding, size, gl.DYNAMIC_DRAW, nil)
 	}
 	return buf, nil
 }
@@ -717,8 +738,7 @@ func (b *Backend) NewImmutableBuffer(typ driver.BufferBinding, data []byte) (dri
 	buf := &buffer{backend: b, obj: obj, typ: typ, size: len(data), hasBuffer: true}
 	firstBinding := firstBufferType(typ)
 	b.glstate.bindBuffer(b.funcs, firstBinding, buf.obj)
-	b.funcs.BufferData(firstBinding, len(data), gl.STATIC_DRAW)
-	buf.Upload(data)
+	b.funcs.BufferData(firstBinding, len(data), gl.STATIC_DRAW, data)
 	buf.immutable = true
 	if err := glErr(b.funcs); err != nil {
 		buf.Release()
@@ -749,11 +769,9 @@ func (b *Backend) MemoryBarrier() {
 }
 
 func (b *Backend) DispatchCompute(x, y, z int) {
-	if p := b.state.prog; p != nil {
-		for binding, buf := range p.storage {
-			if buf != nil {
-				b.glstate.bindBufferBase(b.funcs, gl.SHADER_STORAGE_BUFFER, binding, buf.obj)
-			}
+	for binding, buf := range b.storage {
+		if buf != nil {
+			b.glstate.bindBufferBase(b.funcs, gl.SHADER_STORAGE_BUFFER, binding, buf.obj)
 		}
 	}
 	b.funcs.DispatchCompute(x, y, z)
@@ -767,6 +785,8 @@ func (b *Backend) BindImageTexture(unit int, tex driver.Texture, access driver.A
 		acc = gl.WRITE_ONLY
 	case driver.AccessRead:
 		acc = gl.READ_ONLY
+	case driver.AccessRead | driver.AccessWrite:
+		acc = gl.READ_WRITE
 	default:
 		panic("unsupported access bits")
 	}
@@ -778,11 +798,6 @@ func (b *Backend) BindImageTexture(unit int, tex driver.Texture, access driver.A
 		panic("unsupported format")
 	}
 	b.funcs.BindImageTexture(unit, t.obj, 0, false, 0, acc, format)
-}
-
-func (b *Backend) useProgram(p *program) {
-	b.glstate.useProgram(b.funcs, p.obj)
-	b.state.prog = p
 }
 
 func (b *Backend) BlendFunc(sfactor, dfactor driver.BlendFactor) {
@@ -822,12 +837,12 @@ func (b *Backend) DrawArrays(mode driver.DrawMode, off, count int) {
 }
 
 func (b *Backend) prepareDraw() {
-	p := b.state.prog
+	p := b.state.pipeline
 	if p == nil {
 		return
 	}
 	b.setupVertexArrays()
-	p.updateUniforms()
+	p.prog.updateUniforms()
 }
 
 func toGLDrawMode(mode driver.DrawMode) gl.Enum {
@@ -845,24 +860,9 @@ func (b *Backend) Viewport(x, y, width, height int) {
 	b.glstate.setViewport(b.funcs, x, y, width, height)
 }
 
-func (b *Backend) Clear(colR, colG, colB, colA float32) {
+func (b *Backend) clearOutput(colR, colG, colB, colA float32) {
 	b.glstate.setClearColor(b.funcs, colR, colG, colB, colA)
 	b.funcs.Clear(gl.COLOR_BUFFER_BIT)
-}
-
-func (b *Backend) NewInputLayout(vs shader.Sources, layout []shader.InputDesc) (driver.InputLayout, error) {
-	if len(vs.Inputs) != len(layout) {
-		return nil, fmt.Errorf("NewInputLayout: got %d inputs, expected %d", len(layout), len(vs.Inputs))
-	}
-	for i, inp := range vs.Inputs {
-		if exp, got := inp.Size, layout[i].Size; exp != got {
-			return nil, fmt.Errorf("NewInputLayout: data size mismatch for %q: got %d expected %d", inp.Name, got, exp)
-		}
-	}
-	return &inputLayout{
-		inputs: vs.Inputs,
-		layout: layout,
-	}, nil
 }
 
 func (b *Backend) NewComputeProgram(src shader.Sources) (driver.Program, error) {
@@ -876,48 +876,94 @@ func (b *Backend) NewComputeProgram(src shader.Sources) (driver.Program, error) 
 	}, nil
 }
 
-func (b *Backend) NewProgram(vertShader, fragShader shader.Sources) (driver.Program, error) {
-	attr := make([]string, len(vertShader.Inputs))
-	for _, inp := range vertShader.Inputs {
-		attr[inp.Location] = inp.Name
+func (b *Backend) NewVertexShader(src shader.Sources) (driver.VertexShader, error) {
+	glslSrc := b.glslFor(src)
+	sh, err := gl.CreateShader(b.funcs, gl.VERTEX_SHADER, glslSrc)
+	return &glshader{backend: b, obj: sh, src: src}, err
+}
+
+func (b *Backend) NewFragmentShader(src shader.Sources) (driver.FragmentShader, error) {
+	glslSrc := b.glslFor(src)
+	sh, err := gl.CreateShader(b.funcs, gl.FRAGMENT_SHADER, glslSrc)
+	return &glshader{backend: b, obj: sh, src: src}, err
+}
+
+func (b *Backend) glslFor(src shader.Sources) string {
+	if b.glver[0] < 3 {
+		return src.GLSL100ES
 	}
-	vsrc, fsrc := vertShader.GLSL100ES, fragShader.GLSL100ES
-	if b.glver[0] >= 3 {
-		// OpenGL (ES) 3.0.
-		switch {
-		case b.gles:
-			vsrc, fsrc = vertShader.GLSL300ES, fragShader.GLSL300ES
-		case b.glver[0] >= 4 || b.glver[1] >= 2:
-			// OpenGL 3.2 Core only accepts glsl 1.50 or newer.
-			vsrc, fsrc = vertShader.GLSL150, fragShader.GLSL150
-		default:
-			vsrc, fsrc = vertShader.GLSL130, fragShader.GLSL130
-		}
+	// OpenGL (ES) 3.0.
+	switch {
+	case b.gles:
+		return src.GLSL300ES
+	case b.glver[0] >= 4 || b.glver[1] >= 2:
+		// OpenGL 3.2 Core only accepts glsl 1.50 or newer.
+		return src.GLSL150
+	default:
+		return src.GLSL130
 	}
-	p, err := gl.CreateProgram(b.funcs, vsrc, fsrc, attr)
+}
+
+func (b *Backend) NewPipeline(desc driver.PipelineDesc) (driver.Pipeline, error) {
+	p, err := b.newProgram(desc)
 	if err != nil {
 		return nil, err
+	}
+	layout := desc.VertexLayout
+	vsrc := desc.VertexShader.(*glshader).src
+	if len(vsrc.Inputs) != len(layout.Inputs) {
+		return nil, fmt.Errorf("opengl: got %d inputs, expected %d", len(layout.Inputs), len(vsrc.Inputs))
+	}
+	for i, inp := range vsrc.Inputs {
+		if exp, got := inp.Size, layout.Inputs[i].Size; exp != got {
+			return nil, fmt.Errorf("opengl: data size mismatch for %q: got %d expected %d", inp.Name, got, exp)
+		}
+	}
+	return &pipeline{
+		prog:   p,
+		inputs: vsrc.Inputs,
+		layout: layout,
+		blend:  desc.BlendDesc,
+	}, nil
+}
+
+func (b *Backend) newProgram(desc driver.PipelineDesc) (*program, error) {
+	p := b.funcs.CreateProgram()
+	if !p.Valid() {
+		return nil, errors.New("opengl: glCreateProgram failed")
+	}
+	vsh, fsh := desc.VertexShader.(*glshader), desc.FragmentShader.(*glshader)
+	b.funcs.AttachShader(p, vsh.obj)
+	b.funcs.AttachShader(p, fsh.obj)
+	for _, inp := range vsh.src.Inputs {
+		b.funcs.BindAttribLocation(p, gl.Attrib(inp.Location), inp.Name)
+	}
+	b.funcs.LinkProgram(p)
+	if b.funcs.GetProgrami(p, gl.LINK_STATUS) == 0 {
+		log := b.funcs.GetProgramInfoLog(p)
+		b.funcs.DeleteProgram(p)
+		return nil, fmt.Errorf("opengl: program link failed: %s", strings.TrimSpace(log))
 	}
 	prog := &program{
 		backend: b,
 		obj:     p,
 	}
-	b.BindProgram(prog)
+	b.glstate.useProgram(b.funcs, p)
 	// Bind texture uniforms.
-	for _, tex := range vertShader.Textures {
+	for _, tex := range vsh.src.Textures {
 		u := b.funcs.GetUniformLocation(p, tex.Name)
 		if u.Valid() {
 			b.funcs.Uniform1i(u, tex.Binding)
 		}
 	}
-	for _, tex := range fragShader.Textures {
+	for _, tex := range fsh.src.Textures {
 		u := b.funcs.GetUniformLocation(p, tex.Name)
 		if u.Valid() {
 			b.funcs.Uniform1i(u, tex.Binding)
 		}
 	}
 	if b.ubo {
-		for _, block := range vertShader.Uniforms.Blocks {
+		for _, block := range vsh.src.Uniforms.Blocks {
 			blockIdx := b.funcs.GetUniformBlockIndex(p, block.Name)
 			if blockIdx != gl.INVALID_INDEX {
 				b.funcs.UniformBlockBinding(p, blockIdx, uint(block.Binding))
@@ -926,16 +972,16 @@ func (b *Backend) NewProgram(vertShader, fragShader shader.Sources) (driver.Prog
 		// To match Direct3D 11 with separate vertex and fragment
 		// shader uniform buffers, offset all fragment blocks to be
 		// located after the vertex blocks.
-		off := len(vertShader.Uniforms.Blocks)
-		for _, block := range fragShader.Uniforms.Blocks {
+		off := len(vsh.src.Uniforms.Blocks)
+		for _, block := range fsh.src.Uniforms.Blocks {
 			blockIdx := b.funcs.GetUniformBlockIndex(p, block.Name)
 			if blockIdx != gl.INVALID_INDEX {
 				b.funcs.UniformBlockBinding(p, blockIdx, uint(block.Binding+off))
 			}
 		}
 	} else {
-		prog.vertUniforms.setup(b.funcs, p, vertShader.Uniforms.Size, vertShader.Uniforms.Locations)
-		prog.fragUniforms.setup(b.funcs, p, fragShader.Uniforms.Size, fragShader.Uniforms.Locations)
+		prog.vertUniforms.setup(b.funcs, p, vsh.src.Uniforms.Size, vsh.src.Uniforms.Locations)
+		prog.fragUniforms.setup(b.funcs, p, fsh.src.Uniforms.Size, fsh.src.Uniforms.Locations)
 	}
 	return prog, nil
 }
@@ -948,47 +994,62 @@ func lookupUniform(funcs *gl.Functions, p gl.Program, loc shader.UniformLocation
 	return uniformLocation{uniform: u, offset: loc.Offset, typ: loc.Type, size: loc.Size}
 }
 
-func (p *program) SetStorageBuffer(binding int, buf driver.Buffer) {
-	b := buf.(*buffer)
-	if b.typ&driver.BufferBindingShaderStorage == 0 {
+func (b *Backend) BindStorageBuffer(binding int, buf driver.Buffer) {
+	bf := buf.(*buffer)
+	if bf.typ&(driver.BufferBindingShaderStorageRead|driver.BufferBindingShaderStorageWrite) == 0 {
 		panic("not a shader storage buffer")
 	}
-	p.storage[binding] = b
+	b.storage[binding] = bf
 }
 
-func (p *program) SetVertexUniforms(buf driver.Buffer) {
-	p.vertUniforms.setBuffer(buf)
+func (b *Backend) BindVertexUniforms(buf driver.Buffer) {
+	bf := buf.(*buffer)
+	if bf.typ&driver.BufferBindingUniforms == 0 {
+		panic("not a uniform buffer")
+	}
+	b.vertUniforms = bf
 }
 
-func (p *program) SetFragmentUniforms(buf driver.Buffer) {
-	p.fragUniforms.setBuffer(buf)
+func (b *Backend) BindFragmentUniforms(buf driver.Buffer) {
+	bf := buf.(*buffer)
+	if bf.typ&driver.BufferBindingUniforms == 0 {
+		panic("not a uniform buffer")
+	}
+	b.fragUniforms = bf
 }
 
 func (p *program) updateUniforms() {
 	f := p.backend.funcs
-	if p.backend.ubo {
-		if b := p.vertUniforms.buf; b != nil {
+	if b := p.backend.vertUniforms; b != nil {
+		if p.backend.ubo {
 			p.backend.glstate.bindBufferBase(f, gl.UNIFORM_BUFFER, 0, b.obj)
+		} else {
+			p.vertUniforms.update(f, b)
 		}
-		if b := p.fragUniforms.buf; b != nil {
+	}
+	if b := p.backend.fragUniforms; b != nil {
+		if p.backend.ubo {
 			p.backend.glstate.bindBufferBase(f, gl.UNIFORM_BUFFER, 1, b.obj)
+		} else {
+			p.fragUniforms.update(f, b)
 		}
-	} else {
-		p.vertUniforms.update(f)
-		p.fragUniforms.update(f)
 	}
 }
 
 func (b *Backend) BindProgram(prog driver.Program) {
 	p := prog.(*program)
-	b.useProgram(p)
+	b.glstate.useProgram(b.funcs, p.obj)
+}
+
+func (s *glshader) Release() {
+	s.backend.funcs.DeleteShader(s.obj)
 }
 
 func (p *program) Release() {
 	p.backend.glstate.deleteProgram(p.backend.funcs, p.obj)
 }
 
-func (u *uniformsTracker) setup(funcs *gl.Functions, p gl.Program, uniformSize int, uniforms []shader.UniformLocation) {
+func (u *uniforms) setup(funcs *gl.Functions, p gl.Program, uniformSize int, uniforms []shader.UniformLocation) {
 	u.locs = make([]uniformLocation, len(uniforms))
 	for i, uniform := range uniforms {
 		u.locs[i] = lookupUniform(funcs, p, uniform)
@@ -996,26 +1057,11 @@ func (u *uniformsTracker) setup(funcs *gl.Functions, p gl.Program, uniformSize i
 	u.size = uniformSize
 }
 
-func (u *uniformsTracker) setBuffer(buf driver.Buffer) {
-	b := buf.(*buffer)
-	if b.typ&driver.BufferBindingUniforms == 0 {
-		panic("not a uniform buffer")
+func (p *uniforms) update(funcs *gl.Functions, buf *buffer) {
+	if buf.size < p.size {
+		panic(fmt.Errorf("uniform buffer too small, got %d need %d", buf.size, p.size))
 	}
-	if b.size < u.size {
-		panic(fmt.Errorf("uniform buffer too small, got %d need %d", b.size, u.size))
-	}
-	u.buf = b
-	// Force update.
-	u.version = b.version - 1
-}
-
-func (p *uniformsTracker) update(funcs *gl.Functions) {
-	b := p.buf
-	if b == nil || b.version == p.version {
-		return
-	}
-	p.version = b.version
-	data := b.data
+	data := buf.data
 	for _, u := range p.locs {
 		data := data[u.offset:]
 		switch {
@@ -1048,7 +1094,6 @@ func (b *buffer) Upload(data []byte) {
 	if len(data) > b.size {
 		panic("buffer size overflow")
 	}
-	b.version++
 	copy(b.data, data)
 	if b.hasBuffer {
 		firstBinding := firstBufferType(b.typ)
@@ -1057,9 +1102,10 @@ func (b *buffer) Upload(data []byte) {
 			// the iOS GL implementation doesn't recognize when BufferSubData
 			// clears the entire buffer. Tell it and avoid GPU stalls.
 			// See also https://github.com/godotengine/godot/issues/23956.
-			b.backend.funcs.BufferData(firstBinding, b.size, gl.DYNAMIC_DRAW)
+			b.backend.funcs.BufferData(firstBinding, b.size, gl.DYNAMIC_DRAW, data)
+		} else {
+			b.backend.funcs.BufferSubData(firstBinding, 0, data)
 		}
-		b.backend.funcs.BufferSubData(firstBinding, 0, data)
 	}
 }
 
@@ -1091,24 +1137,26 @@ func (b *buffer) Release() {
 	}
 }
 
-func (b *Backend) BindVertexBuffer(buf driver.Buffer, stride, offset int) {
+func (b *Backend) BindVertexBuffer(buf driver.Buffer, offset int) {
 	gbuf := buf.(*buffer)
 	if gbuf.typ&driver.BufferBindingVertices == 0 {
 		panic("not a vertex buffer")
 	}
-	b.state.buffer = bufferBinding{obj: gbuf.obj, stride: stride, offset: offset}
+	b.state.buffer = bufferBinding{obj: gbuf.obj, offset: offset}
 }
 
 func (b *Backend) setupVertexArrays() {
-	layout := b.state.layout
-	if layout == nil {
+	p := b.state.pipeline
+	inputs := p.inputs
+	if len(inputs) == 0 {
 		return
 	}
+	layout := p.layout
 	const max = len(b.glstate.vertAttribs)
 	var enabled [max]bool
 	buf := b.state.buffer
-	for i, inp := range layout.inputs {
-		l := layout.layout[i]
+	for i, inp := range inputs {
+		l := layout.Inputs[i]
 		var gltyp gl.Enum
 		switch l.Type {
 		case shader.DataTypeFloat:
@@ -1119,7 +1167,7 @@ func (b *Backend) setupVertexArrays() {
 			panic("unsupported data type")
 		}
 		enabled[inp.Location] = true
-		b.glstate.vertexAttribPointer(b.funcs, buf.obj, inp.Location, l.Size, gltyp, false, buf.stride, buf.offset+l.Offset)
+		b.glstate.vertexAttribPointer(b.funcs, buf.obj, inp.Location, l.Size, gltyp, false, p.layout.Stride, buf.offset+l.Offset)
 	}
 	for i := 0; i < max; i++ {
 		b.glstate.setVertexAttribArray(b.funcs, i, enabled[i])
@@ -1134,33 +1182,52 @@ func (b *Backend) BindIndexBuffer(buf driver.Buffer) {
 	b.glstate.bindBuffer(b.funcs, gl.ELEMENT_ARRAY_BUFFER, gbuf.obj)
 }
 
-func (b *Backend) BlitFramebuffer(dst, src driver.Framebuffer, srect, drect image.Rectangle) {
-	b.glstate.bindFramebuffer(b.funcs, gl.DRAW_FRAMEBUFFER, dst.(*framebuffer).obj)
+func (b *Backend) CopyTexture(dst driver.Texture, dstOrigin image.Point, src driver.Framebuffer, srcRect image.Rectangle) {
+	const unit = 0
+	oldTex := b.glstate.texUnits.binds[unit]
+	defer func() {
+		b.glstate.bindTexture(b.funcs, unit, oldTex)
+	}()
+	b.glstate.bindTexture(b.funcs, unit, dst.(*texture).obj)
 	b.glstate.bindFramebuffer(b.funcs, gl.READ_FRAMEBUFFER, src.(*framebuffer).obj)
-	b.funcs.BlitFramebuffer(
-		srect.Min.X, srect.Min.Y, srect.Max.X, srect.Max.Y,
-		drect.Min.X, drect.Min.Y, drect.Max.X, drect.Max.Y,
-		gl.COLOR_BUFFER_BIT,
-		gl.NEAREST)
+	sz := srcRect.Size()
+	b.funcs.CopyTexSubImage2D(gl.TEXTURE_2D, 0, dstOrigin.X, dstOrigin.Y, srcRect.Min.X, srcRect.Min.Y, sz.X, sz.Y)
 }
 
-func (f *framebuffer) ReadPixels(src image.Rectangle, pixels []byte) error {
+func (f *framebuffer) ReadPixels(src image.Rectangle, pixels []byte, stride int) error {
 	glErr(f.backend.funcs)
-	f.backend.BindFramebuffer(f)
+	f.backend.BindFramebuffer(f, driver.LoadDesc{})
 	if len(pixels) < src.Dx()*src.Dy()*4 {
 		return errors.New("unexpected RGBA size")
 	}
-	f.backend.funcs.ReadPixels(src.Min.X, src.Min.Y, src.Dx(), src.Dy(), gl.RGBA, gl.UNSIGNED_BYTE, pixels)
+	w, h := src.Dx(), src.Dy()
+	// WebGL 1 doesn't support PACK_ROW_LENGTH != 0. Avoid it if possible.
+	rowLen := 0
+	if n := stride / 4; n != w {
+		rowLen = n
+	}
+	f.backend.glstate.pixelStorei(f.backend.funcs, gl.PACK_ROW_LENGTH, rowLen)
+	f.backend.funcs.ReadPixels(src.Min.X, src.Min.Y, w, h, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
 	return glErr(f.backend.funcs)
 }
 
-func (b *Backend) BindFramebuffer(fbo driver.Framebuffer) {
-	b.glstate.bindFramebuffer(b.funcs, gl.FRAMEBUFFER, fbo.(*framebuffer).obj)
+func (b *Backend) BindPipeline(pl driver.Pipeline) {
+	p := pl.(*pipeline)
+	b.state.pipeline = p
+	b.glstate.useProgram(b.funcs, p.prog.obj)
+	b.SetBlend(p.blend.Enable)
+	b.BlendFunc(p.blend.SrcFactor, p.blend.DstFactor)
 }
 
-func (f *framebuffer) Invalidate() {
-	f.backend.BindFramebuffer(f)
-	f.backend.funcs.InvalidateFramebuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0)
+func (b *Backend) BindFramebuffer(fbo driver.Framebuffer, desc driver.LoadDesc) {
+	b.glstate.bindFramebuffer(b.funcs, gl.FRAMEBUFFER, fbo.(*framebuffer).obj)
+	switch desc.Action {
+	case driver.LoadActionClear:
+		c := desc.ClearColor
+		b.clearOutput(c.R, c.G, c.B, c.A)
+	case driver.LoadActionInvalidate:
+		b.funcs.InvalidateFramebuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0)
+	}
 }
 
 func (f *framebuffer) Release() {
@@ -1171,6 +1238,11 @@ func (f *framebuffer) Release() {
 }
 
 func (f *framebuffer) ImplementsRenderTarget() {}
+
+func (p *pipeline) Release() {
+	p.prog.Release()
+	*p = pipeline{}
+}
 
 func toTexFilter(f driver.TextureFilter) int {
 	switch f {
@@ -1196,7 +1268,12 @@ func (t *texture) Upload(offset, size image.Point, pixels []byte, stride int) {
 		panic(fmt.Errorf("size %d larger than data %d", min, len(pixels)))
 	}
 	t.backend.BindTexture(0, t)
-	t.backend.glstate.pixelStorei(t.backend.funcs, gl.UNPACK_ROW_LENGTH, stride/4)
+	// WebGL 1 doesn't support UNPACK_ROW_LENGTH != 0. Avoid it if possible.
+	rowLen := 0
+	if n := stride / 4; n != size.X {
+		rowLen = n
+	}
+	t.backend.glstate.pixelStorei(t.backend.funcs, gl.UNPACK_ROW_LENGTH, rowLen)
 	t.backend.funcs.TexSubImage2D(gl.TEXTURE_2D, 0, offset.X, offset.Y, size.X, size.Y, t.triple.format, t.triple.typ, pixels)
 }
 
@@ -1223,12 +1300,6 @@ func (t *timer) Duration() (time.Duration, bool) {
 	nanos := t.funcs.GetQueryObjectuiv(t.obj, gl.QUERY_RESULT)
 	return time.Duration(nanos), true
 }
-
-func (b *Backend) BindInputLayout(l driver.InputLayout) {
-	b.state.layout = l.(*inputLayout)
-}
-
-func (l *inputLayout) Release() {}
 
 // floatTripleFor determines the best texture triple for floating point FBOs.
 func floatTripleFor(f *gl.Functions, ver [2]int, exts []string) (textureTriple, error) {
@@ -1314,7 +1385,7 @@ func firstBufferType(typ driver.BufferBinding) gl.Enum {
 		return gl.ARRAY_BUFFER
 	case typ&driver.BufferBindingUniforms != 0:
 		return gl.UNIFORM_BUFFER
-	case typ&driver.BufferBindingShaderStorage != 0:
+	case typ&(driver.BufferBindingShaderStorageRead|driver.BufferBindingShaderStorageWrite) != 0:
 		return gl.SHADER_STORAGE_BUFFER
 	default:
 		panic("unsupported buffer type")

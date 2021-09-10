@@ -8,18 +8,19 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"github.com/razzie/razgio"
 	"github.com/razzie/riddle-solver/pkg/riddle"
 )
 
 type SavePage struct {
 	theme   *material.Theme
-	modal   ModalHandler
-	name    TextField
+	modal   razgio.ModalHandler
+	name    razgio.TextField
 	saveBtn widget.Clickable
 	getter  func() (*riddle.Riddle, error)
 }
 
-func NewSavePage(th *material.Theme, modal ModalHandler) *SavePage {
+func NewSavePage(th *material.Theme, modal razgio.ModalHandler) *SavePage {
 	return &SavePage{
 		theme: th,
 		modal: modal,

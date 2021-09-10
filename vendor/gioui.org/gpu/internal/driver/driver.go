@@ -26,35 +26,70 @@ type Device interface {
 	NewImmutableBuffer(typ BufferBinding, data []byte) (Buffer, error)
 	NewBuffer(typ BufferBinding, size int) (Buffer, error)
 	NewComputeProgram(shader shader.Sources) (Program, error)
-	NewProgram(vertexShader, fragmentShader shader.Sources) (Program, error)
-	NewInputLayout(vertexShader shader.Sources, layout []shader.InputDesc) (InputLayout, error)
+	NewVertexShader(src shader.Sources) (VertexShader, error)
+	NewFragmentShader(src shader.Sources) (FragmentShader, error)
+	NewPipeline(desc PipelineDesc) (Pipeline, error)
 
-	Clear(r, g, b, a float32)
 	Viewport(x, y, width, height int)
 	DrawArrays(mode DrawMode, off, count int)
 	DrawElements(mode DrawMode, off, count int)
-	SetBlend(enable bool)
-	BlendFunc(sfactor, dfactor BlendFactor)
 
-	BindInputLayout(i InputLayout)
 	BindProgram(p Program)
-	BindFramebuffer(f Framebuffer)
+	BindPipeline(p Pipeline)
+	BindFramebuffer(f Framebuffer, a LoadDesc)
 	BindTexture(unit int, t Texture)
-	BindVertexBuffer(b Buffer, stride, offset int)
+	BindVertexBuffer(b Buffer, offset int)
 	BindIndexBuffer(b Buffer)
 	BindImageTexture(unit int, texture Texture, access AccessBits, format TextureFormat)
+	BindVertexUniforms(buf Buffer)
+	BindFragmentUniforms(buf Buffer)
+	BindStorageBuffer(binding int, buf Buffer)
 
-	BlitFramebuffer(dst, src Framebuffer, srect, drect image.Rectangle)
+	CopyTexture(dst Texture, dstOrigin image.Point, src Framebuffer, srcRect image.Rectangle)
 	MemoryBarrier()
 	DispatchCompute(x, y, z int)
 
 	Release()
 }
 
-// InputLayout is the driver specific representation of the mapping
-// between Buffers and shader attributes.
-type InputLayout interface {
+type LoadDesc struct {
+	Action     LoadAction
+	ClearColor struct {
+		R float32
+		G float32
+		B float32
+		A float32
+	}
+}
+
+type Pipeline interface {
 	Release()
+}
+
+type PipelineDesc struct {
+	VertexShader   VertexShader
+	FragmentShader FragmentShader
+	VertexLayout   VertexLayout
+	BlendDesc      BlendDesc
+	PixelFormat    TextureFormat
+}
+
+type VertexLayout struct {
+	Inputs []InputDesc
+	Stride int
+}
+
+// InputDesc describes a vertex attribute as laid out in a Buffer.
+type InputDesc struct {
+	Type shader.DataType
+	Size int
+
+	Offset int
+}
+
+type BlendDesc struct {
+	Enable               bool
+	SrcFactor, DstFactor BlendFactor
 }
 
 type AccessBits uint8
@@ -68,6 +103,8 @@ type TextureFormat uint8
 
 type BufferBinding uint8
 
+type LoadAction uint8
+
 type Features uint
 
 type Caps struct {
@@ -78,11 +115,16 @@ type Caps struct {
 	MaxTextureSize   int
 }
 
+type VertexShader interface {
+	Release()
+}
+
+type FragmentShader interface {
+	Release()
+}
+
 type Program interface {
 	Release()
-	SetStorageBuffer(binding int, buf Buffer)
-	SetVertexUniforms(buf Buffer)
-	SetFragmentUniforms(buf Buffer)
 }
 
 type Buffer interface {
@@ -93,9 +135,8 @@ type Buffer interface {
 
 type Framebuffer interface {
 	RenderTarget
-	Invalidate()
 	Release()
-	ReadPixels(src image.Rectangle, pixels []byte) error
+	ReadPixels(src image.Rectangle, pixels []byte, stride int) error
 }
 
 type Timer interface {
@@ -116,17 +157,20 @@ const (
 	BufferBindingUniforms
 	BufferBindingTexture
 	BufferBindingFramebuffer
-	BufferBindingShaderStorage
+	BufferBindingShaderStorageRead
+	BufferBindingShaderStorageWrite
 )
 
 const (
 	TextureFormatSRGBA TextureFormat = iota
 	TextureFormatFloat
 	TextureFormatRGBA8
+	// TextureFormatOutput denotes the format used by the output framebuffer.
+	TextureFormatOutput
 )
 
 const (
-	AccessRead AccessBits = 1 + iota
+	AccessRead AccessBits = 1 << iota
 	AccessWrite
 )
 
@@ -154,6 +198,12 @@ const (
 	BlendFactorDstColor
 )
 
+const (
+	LoadActionKeep LoadAction = iota
+	LoadActionClear
+	LoadActionInvalidate
+)
+
 var ErrContentLost = errors.New("buffer content lost")
 
 func (f Features) Has(feats Features) bool {
@@ -162,7 +212,7 @@ func (f Features) Has(feats Features) bool {
 
 func DownloadImage(d Device, f Framebuffer, r image.Rectangle) (*image.RGBA, error) {
 	img := image.NewRGBA(r)
-	if err := f.ReadPixels(r, img.Pix); err != nil {
+	if err := f.ReadPixels(r, img.Pix, img.Stride); err != nil {
 		return nil, err
 	}
 	if d.Caps().BottomLeftOrigin {

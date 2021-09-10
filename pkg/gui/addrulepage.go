@@ -4,42 +4,43 @@ import (
 	"gioui.org/layout"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"github.com/razzie/razgio"
 	"github.com/razzie/riddle-solver/pkg/riddle"
 )
 
 type AddRulePage struct {
 	theme               *material.Theme
-	modal               ModalHandler
-	itemA               TextField
-	itemB               TextField
+	modal               razgio.ModalHandler
+	itemA               razgio.TextField
+	itemB               razgio.TextField
 	relation            widget.Enum
 	hasCondition        widget.Bool
-	conditionItemType   TextField
-	conditionExpression TextField
+	conditionItemType   razgio.TextField
+	conditionExpression razgio.TextField
 	conditionReversible widget.Bool
-	buttons             ButtonBar
+	buttons             razgio.ButtonBar
 	rule                *riddle.Rule
 	setup               riddle.Setup
 	saveFunc            func(*riddle.Rule)
 }
 
-func NewAddRulePage(th *material.Theme, modal ModalHandler) *AddRulePage {
+func NewAddRulePage(th *material.Theme, modal razgio.ModalHandler) *AddRulePage {
 	return &AddRulePage{
 		theme: th,
 		modal: modal,
-		itemA: TextField{
+		itemA: razgio.TextField{
 			Editor: widget.Editor{SingleLine: true},
 		},
-		itemB: TextField{
+		itemB: razgio.TextField{
 			Editor: widget.Editor{SingleLine: true},
 		},
-		conditionItemType: TextField{
+		conditionItemType: razgio.TextField{
 			Editor: widget.Editor{SingleLine: true},
 		},
-		conditionExpression: TextField{
+		conditionExpression: razgio.TextField{
 			Editor: widget.Editor{SingleLine: true},
 		},
-		buttons: NewButtonBar("Save", "Reset / new rule"),
+		buttons: razgio.NewButtonBar("Save", "Reset / new rule"),
 	}
 }
 

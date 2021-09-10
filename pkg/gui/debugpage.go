@@ -4,28 +4,29 @@ import (
 	"fmt"
 
 	"gioui.org/widget/material"
+	"github.com/razzie/razgio"
 	"github.com/razzie/riddle-solver/pkg/riddle"
 )
 
 type DebugPage struct {
 	theme     *material.Theme
-	modal     ModalHandler
-	scrollbar ListWithScrollbar
-	results   Tree
+	modal     razgio.ModalHandler
+	scrollbar razgio.ListWithScrollbar
+	results   razgio.Tree
 	setup     riddle.Setup
 	rules     []riddle.Rule
 	dirty     bool
 }
 
-func NewDebugPage(th *material.Theme, modal ModalHandler) *DebugPage {
+func NewDebugPage(th *material.Theme, modal razgio.ModalHandler) *DebugPage {
 	return &DebugPage{
 		theme:     th,
 		modal:     modal,
-		scrollbar: NewListWithScrollbar(),
-		results: NewTree(
-			TreeLabel{Text: "Solver internals ("},
-			TreeLabel{Text: "XXX", Highlight: true},
-			TreeLabel{Text: " steps)"},
+		scrollbar: razgio.NewListWithScrollbar(),
+		results: razgio.NewTree(
+			razgio.TreeLabel{Text: "Solver internals ("},
+			razgio.TreeLabel{Text: "XXX", Highlight: true},
+			razgio.TreeLabel{Text: " steps)"},
 		),
 		dirty: true,
 	}
@@ -52,14 +53,14 @@ func (p *DebugPage) Select() {
 	p.results.ClearChildren()
 
 	for i, entry := range solver.Entries {
-		node := p.results.AddChild(TreeLabel{Text: fmt.Sprintf("Entry #%d", i+1)})
+		node := p.results.AddChild(razgio.TreeLabel{Text: fmt.Sprintf("Entry #%d", i+1)})
 		for itemType, values := range entry {
-			labelParts := make([]TreeLabel, 0, len(values)*2) // 1 + len(values) + (len(values)-1)
-			labelParts = append(labelParts, TreeLabel{Text: itemType + ": "})
+			labelParts := make([]razgio.TreeLabel, 0, len(values)*2) // 1 + len(values) + (len(values)-1)
+			labelParts = append(labelParts, razgio.TreeLabel{Text: itemType + ": "})
 			for i := 0; i < len(values); i++ {
-				labelParts = append(labelParts, TreeLabel{Text: values[i], Highlight: true})
+				labelParts = append(labelParts, razgio.TreeLabel{Text: values[i], Highlight: true})
 				if i < len(values)-1 {
-					labelParts = append(labelParts, TreeLabel{Text: ", "})
+					labelParts = append(labelParts, razgio.TreeLabel{Text: ", "})
 				}
 			}
 			node.AddChild(labelParts...)

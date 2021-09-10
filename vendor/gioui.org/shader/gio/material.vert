@@ -2,7 +2,11 @@
 
 // SPDX-License-Identifier: Unlicense OR MIT
 
+#extension GL_GOOGLE_include_directive : enable
+
 precision highp float;
+
+#include "common.h"
 
 layout(binding = 0) uniform Block {
 	vec2 scale;
@@ -16,5 +20,6 @@ layout(location = 0) out vec2 vUV;
 
 void main() {
 	vUV = uv;
-	gl_Position = vec4(pos*_block.scale + _block.pos, 0, 1);
+	vec3 p = vec3(pos*_block.scale + _block.pos, 1.0);
+	gl_Position = vec4(transform3x2(fboTransform, p), 1.0);
 }

@@ -11,24 +11,25 @@ import (
 	"gioui.org/widget/material"
 	"gioui.org/x/explorer"
 	"gioui.org/x/richtext"
+	"github.com/razzie/razgio"
 	"github.com/razzie/riddle-solver/pkg/riddle"
 )
 
 type LoadPage struct {
 	theme  *material.Theme
-	modal  ModalHandler
-	list   ListWithScrollbar
-	btns   ButtonBar
+	modal  razgio.ModalHandler
+	list   razgio.ListWithScrollbar
+	btns   razgio.ButtonBar
 	setter func(*riddle.Riddle) error
 	items  []*loadPageItem
 }
 
-func NewLoadPage(th *material.Theme, modal ModalHandler) *LoadPage {
+func NewLoadPage(th *material.Theme, modal razgio.ModalHandler) *LoadPage {
 	return &LoadPage{
 		theme: th,
 		modal: modal,
-		list:  NewListWithScrollbar(),
-		btns:  NewButtonBar("Explore", "Refresh"),
+		list:  razgio.NewListWithScrollbar(),
+		btns:  razgio.NewButtonBar("Explore", "Refresh"),
 	}
 }
 

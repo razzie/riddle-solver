@@ -9,14 +9,12 @@ package gpu
 
 import (
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"image"
 	"image/color"
 	"math"
 	"os"
 	"reflect"
-	"runtime/debug"
 	"time"
 	"unsafe"
 
@@ -36,6 +34,7 @@ import (
 
 	// Register backends.
 	_ "gioui.org/gpu/internal/d3d11"
+	_ "gioui.org/gpu/internal/metal"
 	_ "gioui.org/gpu/internal/opengl"
 )
 
@@ -44,12 +43,10 @@ type GPU interface {
 	Release()
 	// Clear sets the clear color for the next Frame.
 	Clear(color color.NRGBA)
-	// Collect the graphics operations from frame, given the viewport.
-	Collect(viewport image.Point, frame *op.Ops)
-	// Frame draws the collected operations to target.
-	Frame(target RenderTarget) error
+	// Frame draws the graphics operations from op into a viewport of target.
+	Frame(frame *op.Ops, target RenderTarget, viewport image.Point) error
 	// Profile returns the last available profiling information. Profiling
-	// information is requested when Collect sees an io/profile.Op, and the result
+	// information is requested when Frame sees an io/profile.Op, and the result
 	// is available through Profile at some later time.
 	Profile() string
 }
@@ -132,10 +129,6 @@ type imageOp struct {
 	clipType clipType
 	place    placement
 }
-
-// shaderModuleVersion is the exact version of gioui.org/shader expected by
-// this package. Shader programs are not backwards or forwards compatible.
-const shaderModuleVersion = "v0.0.0-20210816161847-c12352edbd45"
 
 func decodeStrokeOp(data []byte) clip.StrokeStyle {
 	_ = data[4]
@@ -281,8 +274,7 @@ type texture struct {
 type blitter struct {
 	ctx                    driver.Device
 	viewport               image.Point
-	prog                   [3]*program
-	layout                 driver.InputLayout
+	pipelines              [3]*pipeline
 	colUniforms            *blitColUniforms
 	texUniforms            *blitTexUniforms
 	linearGradientUniforms *blitLinearGradientUniforms
@@ -321,8 +313,8 @@ type uniformBuffer struct {
 	ptr []byte
 }
 
-type program struct {
-	prog         driver.Program
+type pipeline struct {
+	pipeline     driver.Pipeline
 	vertUniforms *uniformBuffer
 	fragUniforms *uniformBuffer
 }
@@ -358,9 +350,6 @@ const (
 )
 
 func New(api API) (GPU, error) {
-	if err := verifyShaderModule(); err != nil {
-		return nil, err
-	}
 	d, err := driver.NewDevice(api)
 	if err != nil {
 		return nil, err
@@ -387,23 +376,6 @@ func newGPU(ctx driver.Device) (*gpu, error) {
 	return g, nil
 }
 
-func verifyShaderModule() error {
-	mod, ok := debug.ReadBuildInfo()
-	if !ok {
-		// No module support; hopefully the version matches.
-		return nil
-	}
-	for _, m := range mod.Deps {
-		if m.Path == "gioui.org/shader" {
-			if got := m.Version; got != shaderModuleVersion {
-				return fmt.Errorf("gpu: module gioui.org/shader is version %q, expected %q", got, shaderModuleVersion)
-			}
-			return nil
-		}
-	}
-	return errors.New("gpu: module version for gioui.org/shader not found")
-}
-
 func (g *gpu) init(ctx driver.Device) error {
 	g.ctx = ctx
 	g.renderer = newRenderer(ctx)
@@ -425,11 +397,16 @@ func (g *gpu) Release() {
 	g.ctx.Release()
 }
 
-func (g *gpu) Collect(viewport image.Point, frameOps *op.Ops) {
+func (g *gpu) Frame(frameOps *op.Ops, target RenderTarget, viewport image.Point) error {
+	g.collect(viewport, frameOps)
+	return g.frame(target)
+}
+
+func (g *gpu) collect(viewport image.Point, frameOps *op.Ops) {
 	g.renderer.blitter.viewport = viewport
 	g.renderer.pather.viewport = viewport
 	g.drawOps.reset(g.cache, viewport)
-	g.drawOps.collect(g.ctx, g.cache, frameOps, viewport)
+	g.drawOps.collect(frameOps, viewport)
 	g.frameStart = time.Now()
 	if g.drawOps.profile && g.timers == nil && g.ctx.Caps().Features.Has(driver.FeatureTimers) {
 		g.timers = newTimers(g.ctx)
@@ -439,34 +416,33 @@ func (g *gpu) Collect(viewport image.Point, frameOps *op.Ops) {
 	}
 }
 
-func (g *gpu) Frame(target RenderTarget) error {
+func (g *gpu) frame(target RenderTarget) error {
 	viewport := g.renderer.blitter.viewport
 	defFBO := g.ctx.BeginFrame(target, g.drawOps.clear, viewport)
 	defer g.ctx.EndFrame()
+	g.drawOps.buildPaths(g.ctx)
 	for _, img := range g.drawOps.imageOps {
 		expandPathOp(img.path, img.clip)
 	}
-	g.ctx.BindFramebuffer(defFBO)
-	if g.drawOps.clear {
-		g.drawOps.clear = false
-		g.ctx.Clear(g.drawOps.clearColor.Float32())
-	}
 	g.ctx.Viewport(0, 0, viewport.X, viewport.Y)
 	g.stencilTimer.begin()
-	g.ctx.SetBlend(true)
 	g.renderer.packStencils(&g.drawOps.pathOps)
 	g.renderer.stencilClips(g.drawOps.pathCache, g.drawOps.pathOps)
 	g.renderer.packIntersections(g.drawOps.imageOps)
 	g.renderer.intersect(g.drawOps.imageOps)
 	g.stencilTimer.end()
 	g.coverTimer.begin()
-	g.ctx.BindFramebuffer(defFBO)
+	var d driver.LoadDesc
+	if g.drawOps.clear {
+		g.drawOps.clear = false
+		d.Action = driver.LoadActionClear
+		c := &d.ClearColor
+		c.R, c.G, c.B, c.A = g.drawOps.clearColor.Float32()
+	}
+	g.ctx.BindFramebuffer(defFBO, d)
 	g.ctx.Viewport(0, 0, viewport.X, viewport.Y)
 	g.renderer.drawOps(g.cache, g.drawOps.imageOps)
-	g.ctx.SetBlend(false)
-	g.renderer.pather.stenciler.invalidateFBO()
 	g.coverTimer.end()
-	g.ctx.BindFramebuffer(defFBO)
 	g.cleanupTimer.begin()
 	g.cache.frame()
 	g.drawOps.pathCache.frame()
@@ -529,8 +505,8 @@ func newRenderer(ctx driver.Device) *renderer {
 		maxDim = cap
 	}
 
-	r.packer.maxDim = maxDim
-	r.intersections.maxDim = maxDim
+	r.packer.maxDims = image.Pt(maxDim, maxDim)
+	r.intersections.maxDims = image.Pt(maxDim, maxDim)
 	return r
 }
 
@@ -558,90 +534,131 @@ func newBlitter(ctx driver.Device) *blitter {
 	b.colUniforms = new(blitColUniforms)
 	b.texUniforms = new(blitTexUniforms)
 	b.linearGradientUniforms = new(blitLinearGradientUniforms)
-	prog, layout, err := createColorPrograms(ctx, gio.Shader_blit_vert, gio.Shader_blit_frag,
+	pipelines, err := createColorPrograms(ctx, gio.Shader_blit_vert, gio.Shader_blit_frag,
 		[3]interface{}{&b.colUniforms.vert, &b.linearGradientUniforms.vert, &b.texUniforms.vert},
 		[3]interface{}{&b.colUniforms.frag, &b.linearGradientUniforms.frag, nil},
 	)
 	if err != nil {
 		panic(err)
 	}
-	b.prog = prog
-	b.layout = layout
+	b.pipelines = pipelines
 	return b
 }
 
 func (b *blitter) release() {
 	b.quadVerts.Release()
-	for _, p := range b.prog {
+	for _, p := range b.pipelines {
 		p.Release()
 	}
-	b.layout.Release()
 }
 
-func createColorPrograms(b driver.Device, vsSrc shader.Sources, fsSrc [3]shader.Sources, vertUniforms, fragUniforms [3]interface{}) ([3]*program, driver.InputLayout, error) {
-	var progs [3]*program
+func createColorPrograms(b driver.Device, vsSrc shader.Sources, fsSrc [3]shader.Sources, vertUniforms, fragUniforms [3]interface{}) ([3]*pipeline, error) {
+	var pipelines [3]*pipeline
+	blend := driver.BlendDesc{
+		Enable:    true,
+		SrcFactor: driver.BlendFactorOne,
+		DstFactor: driver.BlendFactorOneMinusSrcAlpha,
+	}
+	layout := driver.VertexLayout{
+		Inputs: []driver.InputDesc{
+			{Type: shader.DataTypeFloat, Size: 2, Offset: 0},
+			{Type: shader.DataTypeFloat, Size: 2, Offset: 4 * 2},
+		},
+		Stride: 4 * 4,
+	}
+	vsh, err := b.NewVertexShader(vsSrc)
+	if err != nil {
+		return pipelines, err
+	}
+	defer vsh.Release()
 	{
-		prog, err := b.NewProgram(vsSrc, fsSrc[materialTexture])
+		fsh, err := b.NewFragmentShader(fsSrc[materialTexture])
 		if err != nil {
-			return progs, nil, err
+			return pipelines, err
+		}
+		defer fsh.Release()
+		pipe, err := b.NewPipeline(driver.PipelineDesc{
+			VertexShader:   vsh,
+			FragmentShader: fsh,
+			BlendDesc:      blend,
+			VertexLayout:   layout,
+			PixelFormat:    driver.TextureFormatOutput,
+		})
+		if err != nil {
+			return pipelines, err
 		}
 		var vertBuffer, fragBuffer *uniformBuffer
 		if u := vertUniforms[materialTexture]; u != nil {
 			vertBuffer = newUniformBuffer(b, u)
-			prog.SetVertexUniforms(vertBuffer.buf)
 		}
 		if u := fragUniforms[materialTexture]; u != nil {
 			fragBuffer = newUniformBuffer(b, u)
-			prog.SetFragmentUniforms(fragBuffer.buf)
 		}
-		progs[materialTexture] = newProgram(prog, vertBuffer, fragBuffer)
+		pipelines[materialTexture] = &pipeline{pipe, vertBuffer, fragBuffer}
 	}
 	{
 		var vertBuffer, fragBuffer *uniformBuffer
-		prog, err := b.NewProgram(vsSrc, fsSrc[materialColor])
+		fsh, err := b.NewFragmentShader(fsSrc[materialColor])
 		if err != nil {
-			progs[materialTexture].Release()
-			return progs, nil, err
+			pipelines[materialTexture].Release()
+			return pipelines, err
+		}
+		defer fsh.Release()
+		pipe, err := b.NewPipeline(driver.PipelineDesc{
+			VertexShader:   vsh,
+			FragmentShader: fsh,
+			BlendDesc:      blend,
+			VertexLayout:   layout,
+			PixelFormat:    driver.TextureFormatOutput,
+		})
+		if err != nil {
+			pipelines[materialTexture].Release()
+			return pipelines, err
 		}
 		if u := vertUniforms[materialColor]; u != nil {
 			vertBuffer = newUniformBuffer(b, u)
-			prog.SetVertexUniforms(vertBuffer.buf)
 		}
 		if u := fragUniforms[materialColor]; u != nil {
 			fragBuffer = newUniformBuffer(b, u)
-			prog.SetFragmentUniforms(fragBuffer.buf)
 		}
-		progs[materialColor] = newProgram(prog, vertBuffer, fragBuffer)
+		pipelines[materialColor] = &pipeline{pipe, vertBuffer, fragBuffer}
 	}
 	{
 		var vertBuffer, fragBuffer *uniformBuffer
-		prog, err := b.NewProgram(vsSrc, fsSrc[materialLinearGradient])
+		fsh, err := b.NewFragmentShader(fsSrc[materialLinearGradient])
 		if err != nil {
-			progs[materialTexture].Release()
-			progs[materialColor].Release()
-			return progs, nil, err
+			pipelines[materialTexture].Release()
+			pipelines[materialColor].Release()
+			return pipelines, err
+		}
+		defer fsh.Release()
+		pipe, err := b.NewPipeline(driver.PipelineDesc{
+			VertexShader:   vsh,
+			FragmentShader: fsh,
+			BlendDesc:      blend,
+			VertexLayout:   layout,
+			PixelFormat:    driver.TextureFormatOutput,
+		})
+		if err != nil {
+			pipelines[materialTexture].Release()
+			pipelines[materialColor].Release()
+			return pipelines, err
 		}
 		if u := vertUniforms[materialLinearGradient]; u != nil {
 			vertBuffer = newUniformBuffer(b, u)
-			prog.SetVertexUniforms(vertBuffer.buf)
 		}
 		if u := fragUniforms[materialLinearGradient]; u != nil {
 			fragBuffer = newUniformBuffer(b, u)
-			prog.SetFragmentUniforms(fragBuffer.buf)
 		}
-		progs[materialLinearGradient] = newProgram(prog, vertBuffer, fragBuffer)
+		pipelines[materialLinearGradient] = &pipeline{pipe, vertBuffer, fragBuffer}
 	}
-	layout, err := b.NewInputLayout(vsSrc, []shader.InputDesc{
-		{Type: shader.DataTypeFloat, Size: 2, Offset: 0},
-		{Type: shader.DataTypeFloat, Size: 2, Offset: 4 * 2},
-	})
 	if err != nil {
-		progs[materialTexture].Release()
-		progs[materialColor].Release()
-		progs[materialLinearGradient].Release()
-		return progs, nil, err
+		for _, p := range pipelines {
+			p.Release()
+		}
+		return pipelines, err
 	}
-	return progs, layout, nil
+	return pipelines, nil
 }
 
 func (r *renderer) stencilClips(pathCache *opCache, ops []*pathOp) {
@@ -654,8 +671,7 @@ func (r *renderer) stencilClips(pathCache *opCache, ops []*pathOp) {
 		if fbo != p.place.Idx {
 			fbo = p.place.Idx
 			f := r.pather.stenciler.cover(fbo)
-			r.ctx.BindFramebuffer(f.fbo)
-			r.ctx.Clear(0.0, 0.0, 0.0, 0.0)
+			r.ctx.BindFramebuffer(f.fbo, driver.LoadDesc{Action: driver.LoadActionClear})
 		}
 		v, _ := pathCache.get(p.pathKey)
 		r.pather.stencilPath(p.clip, p.off, p.place.Pos, v.data)
@@ -668,8 +684,7 @@ func (r *renderer) intersect(ops []imageOp) {
 	}
 	fbo := -1
 	r.pather.stenciler.beginIntersect(r.intersections.sizes)
-	r.ctx.BindVertexBuffer(r.blitter.quadVerts, 4*4, 0)
-	r.ctx.BindInputLayout(r.pather.stenciler.iprog.layout)
+	r.ctx.BindVertexBuffer(r.blitter.quadVerts, 0)
 	for _, img := range ops {
 		if img.clipType != clipTypeIntersection {
 			continue
@@ -677,8 +692,9 @@ func (r *renderer) intersect(ops []imageOp) {
 		if fbo != img.place.Idx {
 			fbo = img.place.Idx
 			f := r.pather.stenciler.intersections.fbos[fbo]
-			r.ctx.BindFramebuffer(f.fbo)
-			r.ctx.Clear(1.0, 0.0, 0.0, 0.0)
+			d := driver.LoadDesc{Action: driver.LoadActionClear}
+			d.ClearColor.R = 1.0
+			r.ctx.BindFramebuffer(f.fbo, d)
 		}
 		r.ctx.Viewport(img.place.Pos.X, img.place.Pos.Y, img.clip.Dx(), img.clip.Dy())
 		r.intersectPath(img.path, img.clip)
@@ -705,9 +721,9 @@ func (r *renderer) intersectPath(p *pathOp, clip image.Rectangle) {
 	r.ctx.BindTexture(0, fbo.tex)
 	coverScale, coverOff := texSpaceTransform(layout.FRect(uv), fbo.size)
 	subScale, subOff := texSpaceTransform(layout.FRect(sub), p.clip.Size())
-	r.pather.stenciler.iprog.uniforms.vert.uvTransform = [4]float32{coverScale.X, coverScale.Y, coverOff.X, coverOff.Y}
-	r.pather.stenciler.iprog.uniforms.vert.subUVTransform = [4]float32{subScale.X, subScale.Y, subOff.X, subOff.Y}
-	r.pather.stenciler.iprog.prog.UploadUniforms()
+	r.pather.stenciler.ipipeline.uniforms.vert.uvTransform = [4]float32{coverScale.X, coverScale.Y, coverOff.X, coverOff.Y}
+	r.pather.stenciler.ipipeline.uniforms.vert.subUVTransform = [4]float32{subScale.X, subScale.Y, subOff.X, subOff.Y}
+	r.pather.stenciler.ipipeline.pipeline.UploadUniforms(r.ctx)
 	r.ctx.DrawArrays(driver.DrawModeTriangleStrip, 0, 4)
 }
 
@@ -758,7 +774,7 @@ func (r *renderer) packStencils(pops *[]*pathOp) {
 		if !ok {
 			// The clip area is at most the entire screen. Hopefully no
 			// screen is larger than GL_MAX_TEXTURE_SIZE.
-			panic(fmt.Errorf("clip area %v is larger than maximum texture size %dx%d", p.clip, r.packer.maxDim, r.packer.maxDim))
+			panic(fmt.Errorf("clip area %v is larger than maximum texture size %v", p.clip, r.packer.maxDims))
 		}
 		p.place = place
 		i++
@@ -798,7 +814,7 @@ func (d *drawOps) reset(cache *resourceCache, viewport image.Point) {
 	d.vertCache = d.vertCache[:0]
 }
 
-func (d *drawOps) collect(ctx driver.Device, cache *resourceCache, root *op.Ops, viewport image.Point) {
+func (d *drawOps) collect(root *op.Ops, viewport image.Point) {
 	clip := f32.Rectangle{
 		Max: f32.Point{X: float32(viewport.X), Y: float32(viewport.Y)},
 	}
@@ -809,6 +825,9 @@ func (d *drawOps) collect(ctx driver.Device, cache *resourceCache, root *op.Ops,
 		color: color.NRGBA{A: 0xff},
 	}
 	d.collectOps(&d.reader, state)
+}
+
+func (d *drawOps) buildPaths(ctx driver.Device) {
 	for _, p := range d.pathOps {
 		if v, exists := d.pathCache.get(p.pathKey); !exists || v.data.data == nil {
 			data := buildPath(ctx, p.pathVerts)
@@ -1059,9 +1078,7 @@ func (d *drawState) materialFor(rect f32.Rectangle, off f32.Point, partTrans f32
 }
 
 func (r *renderer) drawOps(cache *resourceCache, ops []imageOp) {
-	r.ctx.BlendFunc(driver.BlendFactorOne, driver.BlendFactorOneMinusSrcAlpha)
-	r.ctx.BindVertexBuffer(r.blitter.quadVerts, 4*4, 0)
-	r.ctx.BindInputLayout(r.pather.coverer.layout)
+	r.ctx.BindVertexBuffer(r.blitter.quadVerts, 0)
 	var coverTex driver.Texture
 	for _, img := range ops {
 		m := img.material
@@ -1096,8 +1113,8 @@ func (r *renderer) drawOps(cache *resourceCache, ops []imageOp) {
 }
 
 func (b *blitter) blit(mat materialType, col f32color.RGBA, col1, col2 f32color.RGBA, scale, off f32.Point, uvTrans f32.Affine2D) {
-	p := b.prog[mat]
-	b.ctx.BindProgram(p.prog)
+	p := b.pipelines[mat]
+	b.ctx.BindPipeline(p.pipeline)
 	var uniforms *blitUniforms
 	switch mat {
 	case materialColor:
@@ -1118,7 +1135,7 @@ func (b *blitter) blit(mat materialType, col f32color.RGBA, col1, col2 f32color.
 		uniforms = &b.linearGradientUniforms.vert.blitUniforms
 	}
 	uniforms.transform = [4]float32{scale.X, scale.Y, off.X, off.Y}
-	p.UploadUniforms()
+	p.UploadUniforms(b.ctx)
 	b.ctx.DrawArrays(driver.DrawModeTriangleStrip, 0, 4)
 }
 
@@ -1146,36 +1163,26 @@ func (u *uniformBuffer) Release() {
 	u.buf = nil
 }
 
-func newProgram(prog driver.Program, vertUniforms, fragUniforms *uniformBuffer) *program {
-	if vertUniforms != nil {
-		prog.SetVertexUniforms(vertUniforms.buf)
-	}
-	if fragUniforms != nil {
-		prog.SetFragmentUniforms(fragUniforms.buf)
-	}
-	return &program{prog: prog, vertUniforms: vertUniforms, fragUniforms: fragUniforms}
-}
-
-func (p *program) UploadUniforms() {
+func (p *pipeline) UploadUniforms(ctx driver.Device) {
 	if p.vertUniforms != nil {
+		ctx.BindVertexUniforms(p.vertUniforms.buf)
 		p.vertUniforms.Upload()
 	}
 	if p.fragUniforms != nil {
+		ctx.BindFragmentUniforms(p.fragUniforms.buf)
 		p.fragUniforms.Upload()
 	}
 }
 
-func (p *program) Release() {
-	p.prog.Release()
-	p.prog = nil
+func (p *pipeline) Release() {
+	p.pipeline.Release()
 	if p.vertUniforms != nil {
 		p.vertUniforms.Release()
-		p.vertUniforms = nil
 	}
 	if p.fragUniforms != nil {
 		p.fragUniforms.Release()
-		p.fragUniforms = nil
 	}
+	*p = pipeline{}
 }
 
 // texSpaceTransform return the scale and offset that transforms the given subimage

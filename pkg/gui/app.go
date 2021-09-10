@@ -11,19 +11,25 @@ import (
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/widget/material"
+	"github.com/razzie/razgio"
 	"github.com/razzie/riddle-solver/pkg/riddle"
+)
+
+type (
+	C = layout.Context
+	D = layout.Dimensions
 )
 
 type App struct {
 	theme   *material.Theme
-	pages   *PageHandler
+	pages   *razgio.PageHandler
 	setup   *SetupPage
 	addRule *AddRulePage
 	rules   *RulesPage
 }
 
 func NewApp(th *material.Theme, debug bool) *App {
-	pages := NewPageHandler(th)
+	pages := razgio.NewPageHandler(th)
 
 	setup := NewSetupPage(th, pages)
 	pages.AddPage(setup)

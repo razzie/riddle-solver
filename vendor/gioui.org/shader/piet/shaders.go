@@ -11,40 +11,103 @@ import (
 
 var (
 	Shader_backdrop_comp = shader.Sources{
-		Name: "backdrop.comp",
+		Name:          "backdrop.comp",
+		WorkgroupSize: [3]int{128, 1, 1},
 	}
 	//go:embed zbackdrop.comp.0.glsl310es
 	zbackdrop_comp_0_glsl310es string
-	Shader_binning_comp        = shader.Sources{
-		Name: "binning.comp",
+	//go:embed zbackdrop.comp.0.dxbc
+	zbackdrop_comp_0_dxbc string
+	//go:embed zbackdrop.comp.0.metallibmacos
+	zbackdrop_comp_0_metallibmacos string
+	//go:embed zbackdrop.comp.0.metallibios
+	zbackdrop_comp_0_metallibios string
+	//go:embed zbackdrop.comp.0.metallibiossimulator
+	zbackdrop_comp_0_metallibiossimulator string
+	Shader_binning_comp                   = shader.Sources{
+		Name:          "binning.comp",
+		WorkgroupSize: [3]int{128, 1, 1},
 	}
 	//go:embed zbinning.comp.0.glsl310es
 	zbinning_comp_0_glsl310es string
-	Shader_coarse_comp        = shader.Sources{
-		Name: "coarse.comp",
+	//go:embed zbinning.comp.0.dxbc
+	zbinning_comp_0_dxbc string
+	//go:embed zbinning.comp.0.metallibmacos
+	zbinning_comp_0_metallibmacos string
+	//go:embed zbinning.comp.0.metallibios
+	zbinning_comp_0_metallibios string
+	//go:embed zbinning.comp.0.metallibiossimulator
+	zbinning_comp_0_metallibiossimulator string
+	Shader_coarse_comp                   = shader.Sources{
+		Name:          "coarse.comp",
+		WorkgroupSize: [3]int{128, 1, 1},
 	}
 	//go:embed zcoarse.comp.0.glsl310es
 	zcoarse_comp_0_glsl310es string
-	Shader_elements_comp     = shader.Sources{
-		Name: "elements.comp",
+	//go:embed zcoarse.comp.0.dxbc
+	zcoarse_comp_0_dxbc string
+	//go:embed zcoarse.comp.0.metallibmacos
+	zcoarse_comp_0_metallibmacos string
+	//go:embed zcoarse.comp.0.metallibios
+	zcoarse_comp_0_metallibios string
+	//go:embed zcoarse.comp.0.metallibiossimulator
+	zcoarse_comp_0_metallibiossimulator string
+	Shader_elements_comp                = shader.Sources{
+		Name:          "elements.comp",
+		WorkgroupSize: [3]int{32, 1, 1},
 	}
 	//go:embed zelements.comp.0.glsl310es
 	zelements_comp_0_glsl310es string
-	Shader_kernel4_comp        = shader.Sources{
-		Name: "kernel4.comp",
+	//go:embed zelements.comp.0.dxbc
+	zelements_comp_0_dxbc string
+	//go:embed zelements.comp.0.metallibmacos
+	zelements_comp_0_metallibmacos string
+	//go:embed zelements.comp.0.metallibios
+	zelements_comp_0_metallibios string
+	//go:embed zelements.comp.0.metallibiossimulator
+	zelements_comp_0_metallibiossimulator string
+	Shader_kernel4_comp                   = shader.Sources{
+		Name:          "kernel4.comp",
+		WorkgroupSize: [3]int{16, 8, 1},
 	}
 	//go:embed zkernel4.comp.0.glsl310es
 	zkernel4_comp_0_glsl310es string
-	Shader_path_coarse_comp   = shader.Sources{
-		Name: "path_coarse.comp",
+	//go:embed zkernel4.comp.0.dxbc
+	zkernel4_comp_0_dxbc string
+	//go:embed zkernel4.comp.0.metallibmacos
+	zkernel4_comp_0_metallibmacos string
+	//go:embed zkernel4.comp.0.metallibios
+	zkernel4_comp_0_metallibios string
+	//go:embed zkernel4.comp.0.metallibiossimulator
+	zkernel4_comp_0_metallibiossimulator string
+	Shader_path_coarse_comp              = shader.Sources{
+		Name:          "path_coarse.comp",
+		WorkgroupSize: [3]int{32, 1, 1},
 	}
 	//go:embed zpath_coarse.comp.0.glsl310es
 	zpath_coarse_comp_0_glsl310es string
-	Shader_tile_alloc_comp        = shader.Sources{
-		Name: "tile_alloc.comp",
+	//go:embed zpath_coarse.comp.0.dxbc
+	zpath_coarse_comp_0_dxbc string
+	//go:embed zpath_coarse.comp.0.metallibmacos
+	zpath_coarse_comp_0_metallibmacos string
+	//go:embed zpath_coarse.comp.0.metallibios
+	zpath_coarse_comp_0_metallibios string
+	//go:embed zpath_coarse.comp.0.metallibiossimulator
+	zpath_coarse_comp_0_metallibiossimulator string
+	Shader_tile_alloc_comp                   = shader.Sources{
+		Name:          "tile_alloc.comp",
+		WorkgroupSize: [3]int{128, 1, 1},
 	}
 	//go:embed ztile_alloc.comp.0.glsl310es
 	ztile_alloc_comp_0_glsl310es string
+	//go:embed ztile_alloc.comp.0.dxbc
+	ztile_alloc_comp_0_dxbc string
+	//go:embed ztile_alloc.comp.0.metallibmacos
+	ztile_alloc_comp_0_metallibmacos string
+	//go:embed ztile_alloc.comp.0.metallibios
+	ztile_alloc_comp_0_metallibios string
+	//go:embed ztile_alloc.comp.0.metallibiossimulator
+	ztile_alloc_comp_0_metallibiossimulator string
 )
 
 func init() {
@@ -59,6 +122,17 @@ func init() {
 	if opengl {
 	}
 	if d3d11 {
+		Shader_backdrop_comp.DXBC = zbackdrop_comp_0_dxbc
+	}
+	if runtime.GOOS == "darwin" {
+		Shader_backdrop_comp.MetalLib = zbackdrop_comp_0_metallibmacos
+	}
+	if runtime.GOOS == "ios" {
+		if runtime.GOARCH == "amd64" {
+			Shader_backdrop_comp.MetalLib = zbackdrop_comp_0_metallibiossimulator
+		} else {
+			Shader_backdrop_comp.MetalLib = zbackdrop_comp_0_metallibios
+		}
 	}
 	if opengles {
 		Shader_binning_comp.GLSL310ES = zbinning_comp_0_glsl310es
@@ -66,6 +140,17 @@ func init() {
 	if opengl {
 	}
 	if d3d11 {
+		Shader_binning_comp.DXBC = zbinning_comp_0_dxbc
+	}
+	if runtime.GOOS == "darwin" {
+		Shader_binning_comp.MetalLib = zbinning_comp_0_metallibmacos
+	}
+	if runtime.GOOS == "ios" {
+		if runtime.GOARCH == "amd64" {
+			Shader_binning_comp.MetalLib = zbinning_comp_0_metallibiossimulator
+		} else {
+			Shader_binning_comp.MetalLib = zbinning_comp_0_metallibios
+		}
 	}
 	if opengles {
 		Shader_coarse_comp.GLSL310ES = zcoarse_comp_0_glsl310es
@@ -73,6 +158,17 @@ func init() {
 	if opengl {
 	}
 	if d3d11 {
+		Shader_coarse_comp.DXBC = zcoarse_comp_0_dxbc
+	}
+	if runtime.GOOS == "darwin" {
+		Shader_coarse_comp.MetalLib = zcoarse_comp_0_metallibmacos
+	}
+	if runtime.GOOS == "ios" {
+		if runtime.GOARCH == "amd64" {
+			Shader_coarse_comp.MetalLib = zcoarse_comp_0_metallibiossimulator
+		} else {
+			Shader_coarse_comp.MetalLib = zcoarse_comp_0_metallibios
+		}
 	}
 	if opengles {
 		Shader_elements_comp.GLSL310ES = zelements_comp_0_glsl310es
@@ -80,6 +176,17 @@ func init() {
 	if opengl {
 	}
 	if d3d11 {
+		Shader_elements_comp.DXBC = zelements_comp_0_dxbc
+	}
+	if runtime.GOOS == "darwin" {
+		Shader_elements_comp.MetalLib = zelements_comp_0_metallibmacos
+	}
+	if runtime.GOOS == "ios" {
+		if runtime.GOARCH == "amd64" {
+			Shader_elements_comp.MetalLib = zelements_comp_0_metallibiossimulator
+		} else {
+			Shader_elements_comp.MetalLib = zelements_comp_0_metallibios
+		}
 	}
 	if opengles {
 		Shader_kernel4_comp.GLSL310ES = zkernel4_comp_0_glsl310es
@@ -87,6 +194,17 @@ func init() {
 	if opengl {
 	}
 	if d3d11 {
+		Shader_kernel4_comp.DXBC = zkernel4_comp_0_dxbc
+	}
+	if runtime.GOOS == "darwin" {
+		Shader_kernel4_comp.MetalLib = zkernel4_comp_0_metallibmacos
+	}
+	if runtime.GOOS == "ios" {
+		if runtime.GOARCH == "amd64" {
+			Shader_kernel4_comp.MetalLib = zkernel4_comp_0_metallibiossimulator
+		} else {
+			Shader_kernel4_comp.MetalLib = zkernel4_comp_0_metallibios
+		}
 	}
 	if opengles {
 		Shader_path_coarse_comp.GLSL310ES = zpath_coarse_comp_0_glsl310es
@@ -94,6 +212,17 @@ func init() {
 	if opengl {
 	}
 	if d3d11 {
+		Shader_path_coarse_comp.DXBC = zpath_coarse_comp_0_dxbc
+	}
+	if runtime.GOOS == "darwin" {
+		Shader_path_coarse_comp.MetalLib = zpath_coarse_comp_0_metallibmacos
+	}
+	if runtime.GOOS == "ios" {
+		if runtime.GOARCH == "amd64" {
+			Shader_path_coarse_comp.MetalLib = zpath_coarse_comp_0_metallibiossimulator
+		} else {
+			Shader_path_coarse_comp.MetalLib = zpath_coarse_comp_0_metallibios
+		}
 	}
 	if opengles {
 		Shader_tile_alloc_comp.GLSL310ES = ztile_alloc_comp_0_glsl310es
@@ -101,5 +230,16 @@ func init() {
 	if opengl {
 	}
 	if d3d11 {
+		Shader_tile_alloc_comp.DXBC = ztile_alloc_comp_0_dxbc
+	}
+	if runtime.GOOS == "darwin" {
+		Shader_tile_alloc_comp.MetalLib = ztile_alloc_comp_0_metallibmacos
+	}
+	if runtime.GOOS == "ios" {
+		if runtime.GOARCH == "amd64" {
+			Shader_tile_alloc_comp.MetalLib = ztile_alloc_comp_0_metallibiossimulator
+		} else {
+			Shader_tile_alloc_comp.MetalLib = ztile_alloc_comp_0_metallibios
+		}
 	}
 }

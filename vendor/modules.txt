@@ -1,9 +1,8 @@
-# gioui.org v0.0.0-20210819082505-f47508729638
+# gioui.org v0.0.0-20210909142423-e92ca233f5b1
 ## explicit
 gioui.org/app
 gioui.org/app/internal/log
 gioui.org/app/internal/windows
-gioui.org/app/internal/wm
 gioui.org/app/internal/xkb
 gioui.org/f32
 gioui.org/font/gofont
@@ -12,6 +11,7 @@ gioui.org/gesture
 gioui.org/gpu
 gioui.org/gpu/internal/d3d11
 gioui.org/gpu/internal/driver
+gioui.org/gpu/internal/metal
 gioui.org/gpu/internal/opengl
 gioui.org/internal/byteslice
 gioui.org/internal/cocoainit
@@ -41,7 +41,7 @@ gioui.org/widget
 gioui.org/widget/material
 # gioui.org/cpu v0.0.0-20210817075930-8d6a761490d2
 gioui.org/cpu
-# gioui.org/shader v0.0.0-20210816161847-c12352edbd45
+# gioui.org/shader v1.0.2
 gioui.org/shader
 gioui.org/shader/gio
 gioui.org/shader/piet
@@ -78,13 +78,15 @@ github.com/gdamore/tcell/terminfo
 github.com/lucasb-eyer/go-colorful
 # github.com/mattn/go-runewidth v0.0.4
 github.com/mattn/go-runewidth
+# github.com/razzie/razgio v0.0.0-20210910000152-7dfc0f2528fb
+## explicit
+github.com/razzie/razgio
 # github.com/rivo/tview v0.0.0-20190829161255-f8bc69b90341
 ## explicit
 github.com/rivo/tview
 # github.com/rivo/uniseg v0.0.0-20190513083848-b9f5b9457d44
 github.com/rivo/uniseg
-# golang.org/x/exp v0.0.0-20210901193431-a062eea981d2
-## explicit
+# golang.org/x/exp v0.0.0-20210909165118-5314dedadbaa
 golang.org/x/exp/shiny/iconvg
 golang.org/x/exp/shiny/iconvg/internal/gradient
 golang.org/x/exp/shiny/materialdesign/icons

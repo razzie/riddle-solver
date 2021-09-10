@@ -24,10 +24,14 @@ type Backend struct {
 	// Temporary storage to avoid garbage.
 	clearColor [4]float32
 	viewport   d3d11.VIEWPORT
-	blendState blendState
 
-	// Current program.
-	prog *Program
+	pipeline *Pipeline
+	vert     struct {
+		buffer *Buffer
+		offset int
+	}
+
+	program *Program
 
 	caps driver.Caps
 
@@ -35,15 +39,14 @@ type Backend struct {
 	fbo *Framebuffer
 
 	floatFormat uint32
-
-	// cached state objects.
-	blendStates map[blendState]*d3d11.BlendState
 }
 
-type blendState struct {
-	enable  bool
-	sfactor driver.BlendFactor
-	dfactor driver.BlendFactor
+type Pipeline struct {
+	vert   *d3d11.VertexShader
+	frag   *d3d11.PixelShader
+	layout *d3d11.InputLayout
+	blend  *d3d11.BlendState
+	stride int
 }
 
 type Texture struct {
@@ -53,21 +56,25 @@ type Texture struct {
 	tex      *d3d11.Texture2D
 	sampler  *d3d11.SamplerState
 	resView  *d3d11.ShaderResourceView
+	uaView   *d3d11.UnorderedAccessView
 	width    int
 	height   int
 }
 
+type VertexShader struct {
+	backend *Backend
+	shader  *d3d11.VertexShader
+	src     shader.Sources
+}
+
+type FragmentShader struct {
+	backend *Backend
+	shader  *d3d11.PixelShader
+}
+
 type Program struct {
 	backend *Backend
-
-	vert struct {
-		shader   *d3d11.VertexShader
-		uniforms *Buffer
-	}
-	frag struct {
-		shader   *d3d11.PixelShader
-		uniforms *Buffer
-	}
+	shader  *d3d11.ComputeShader
 }
 
 type Framebuffer struct {
@@ -83,11 +90,10 @@ type Buffer struct {
 	backend   *Backend
 	bind      uint32
 	buf       *d3d11.Buffer
+	resView   *d3d11.ShaderResourceView
+	uaView    *d3d11.UnorderedAccessView
+	size      int
 	immutable bool
-}
-
-type InputLayout struct {
-	layout *d3d11.InputLayout
 }
 
 func init() {
@@ -122,17 +128,16 @@ func newDirect3D11Device(api driver.Direct3D11) (driver.Device, error) {
 			MaxTextureSize: 2048, // 9.1 maximum
 			Features:       driver.FeatureSRGB,
 		},
-		blendStates: make(map[blendState]*d3d11.BlendState),
 	}
 	featLvl := dev.GetFeatureLevel()
-	if featLvl < d3d11.FEATURE_LEVEL_9_1 {
+	switch {
+	case featLvl < d3d11.FEATURE_LEVEL_9_1:
 		d3d11.IUnknownRelease(unsafe.Pointer(dev), dev.Vtbl.Release)
 		d3d11.IUnknownRelease(unsafe.Pointer(b.ctx), b.ctx.Vtbl.Release)
 		return nil, fmt.Errorf("d3d11: feature level too low: %d", featLvl)
-	}
-	switch {
 	case featLvl >= d3d11.FEATURE_LEVEL_11_0:
 		b.caps.MaxTextureSize = 16384
+		b.caps.Features |= driver.FeatureCompute
 	case featLvl >= d3d11.FEATURE_LEVEL_9_3:
 		b.caps.MaxTextureSize = 4096
 	}
@@ -164,15 +169,31 @@ func (b *Backend) BeginFrame(target driver.RenderTarget, clear bool, viewport im
 		case *Framebuffer:
 			renderTarget = t.renderTarget
 		default:
-			panic(fmt.Errorf("opengl: invalid render target type: %T", target))
+			panic(fmt.Errorf("d3d11: invalid render target type: %T", target))
 		}
 	}
 	b.ctx.OMSetRenderTargets(renderTarget, nil)
 	return &Framebuffer{ctx: b.ctx, dev: b.dev, renderTarget: renderTarget, foreign: true}
 }
 
-func (b *Backend) BlitFramebuffer(dst, src driver.Framebuffer, srect, drect image.Rectangle) {
-	panic("not implemented")
+func (b *Backend) CopyTexture(dstTex driver.Texture, dstOrigin image.Point, srcFBO driver.Framebuffer, srcRect image.Rectangle) {
+	dst := (*d3d11.Resource)(unsafe.Pointer(dstTex.(*Texture).tex))
+	src := srcFBO.(*Framebuffer).resource
+	b.ctx.CopySubresourceRegion(
+		dst,
+		0,                                           // Destination subresource.
+		uint32(dstOrigin.X), uint32(dstOrigin.Y), 0, // Destination coordinates (x, y, z).
+		src,
+		0, // Source subresource.
+		&d3d11.BOX{
+			Left:   uint32(srcRect.Min.X),
+			Top:    uint32(srcRect.Min.Y),
+			Right:  uint32(srcRect.Max.X),
+			Bottom: uint32(srcRect.Max.Y),
+			Front:  0,
+			Back:   1,
+		},
+	)
 }
 
 func (b *Backend) EndFrame() {
@@ -191,9 +212,6 @@ func (b *Backend) IsTimeContinuous() bool {
 }
 
 func (b *Backend) Release() {
-	for _, state := range b.blendStates {
-		d3d11.IUnknownRelease(unsafe.Pointer(state), state.Vtbl.Release)
-	}
 	d3d11.IUnknownRelease(unsafe.Pointer(b.ctx), b.ctx.Vtbl.Release)
 	*b = Backend{}
 }
@@ -205,6 +223,8 @@ func (b *Backend) NewTexture(format driver.TextureFormat, width, height int, min
 		d3dfmt = b.floatFormat
 	case driver.TextureFormatSRGBA:
 		d3dfmt = d3d11.DXGI_FORMAT_R8G8B8A8_UNORM_SRGB
+	case driver.TextureFormatRGBA8:
+		d3dfmt = d3d11.DXGI_FORMAT_R8G8B8A8_UNORM
 	default:
 		return nil, fmt.Errorf("unsupported texture format %d", format)
 	}
@@ -226,6 +246,7 @@ func (b *Backend) NewTexture(format driver.TextureFormat, width, height int, min
 	var (
 		sampler *d3d11.SamplerState
 		resView *d3d11.ShaderResourceView
+		uaView  *d3d11.UnorderedAccessView
 	)
 	if bindings&driver.BufferBindingTexture != 0 {
 		var filter uint32
@@ -252,9 +273,9 @@ func (b *Backend) NewTexture(format driver.TextureFormat, width, height int, min
 			d3d11.IUnknownRelease(unsafe.Pointer(tex), tex.Vtbl.Release)
 			return nil, err
 		}
-		resView, err = b.dev.CreateShaderResourceViewTEX2D(
+		resView, err = b.dev.CreateShaderResourceView(
 			(*d3d11.Resource)(unsafe.Pointer(tex)),
-			&d3d11.SHADER_RESOURCE_VIEW_DESC_TEX2D{
+			unsafe.Pointer(&d3d11.SHADER_RESOURCE_VIEW_DESC_TEX2D{
 				SHADER_RESOURCE_VIEW_DESC: d3d11.SHADER_RESOURCE_VIEW_DESC{
 					Format:        d3dfmt,
 					ViewDimension: d3d11.SRV_DIMENSION_TEXTURE2D,
@@ -263,7 +284,7 @@ func (b *Backend) NewTexture(format driver.TextureFormat, width, height int, min
 					MostDetailedMip: 0,
 					MipLevels:       ^uint32(0),
 				},
-			},
+			}),
 		)
 		if err != nil {
 			d3d11.IUnknownRelease(unsafe.Pointer(tex), tex.Vtbl.Release)
@@ -271,7 +292,31 @@ func (b *Backend) NewTexture(format driver.TextureFormat, width, height int, min
 			return nil, err
 		}
 	}
-	return &Texture{backend: b, format: d3dfmt, tex: tex, sampler: sampler, resView: resView, bindings: bindings, width: width, height: height}, nil
+	if bindings&driver.BufferBindingShaderStorageWrite != 0 {
+		uaView, err = b.dev.CreateUnorderedAccessView(
+			(*d3d11.Resource)(unsafe.Pointer(tex)),
+			unsafe.Pointer(&d3d11.UNORDERED_ACCESS_VIEW_DESC_TEX2D{
+				UNORDERED_ACCESS_VIEW_DESC: d3d11.UNORDERED_ACCESS_VIEW_DESC{
+					Format:        d3dfmt,
+					ViewDimension: d3d11.UAV_DIMENSION_TEXTURE2D,
+				},
+				Texture2D: d3d11.TEX2D_UAV{
+					MipSlice: 0,
+				},
+			}),
+		)
+		if err != nil {
+			if sampler != nil {
+				d3d11.IUnknownRelease(unsafe.Pointer(sampler), sampler.Vtbl.Release)
+			}
+			if resView != nil {
+				d3d11.IUnknownRelease(unsafe.Pointer(resView), resView.Vtbl.Release)
+			}
+			d3d11.IUnknownRelease(unsafe.Pointer(tex), tex.Vtbl.Release)
+			return nil, err
+		}
+	}
+	return &Texture{backend: b, format: d3dfmt, tex: tex, sampler: sampler, resView: resView, uaView: uaView, bindings: bindings, width: width, height: height}, nil
 }
 
 func (b *Backend) NewFramebuffer(tex driver.Texture) (driver.Framebuffer, error) {
@@ -288,7 +333,7 @@ func (b *Backend) NewFramebuffer(tex driver.Texture) (driver.Framebuffer, error)
 	return fbo, nil
 }
 
-func (b *Backend) NewInputLayout(vertexShader shader.Sources, layout []shader.InputDesc) (driver.InputLayout, error) {
+func (b *Backend) newInputLayout(vertexShader shader.Sources, layout []driver.InputDesc) (*d3d11.InputLayout, error) {
 	if len(vertexShader.Inputs) != len(layout) {
 		return nil, fmt.Errorf("NewInputLayout: got %d inputs, expected %d", len(layout), len(vertexShader.Inputs))
 	}
@@ -333,14 +378,18 @@ func (b *Backend) NewInputLayout(vertexShader shader.Sources, layout []shader.In
 			AlignedByteOffset: uint32(l.Offset),
 		}
 	}
-	l, err := b.dev.CreateInputLayout(descs, []byte(vertexShader.DXBC))
-	if err != nil {
-		return nil, err
-	}
-	return &InputLayout{layout: l}, nil
+	return b.dev.CreateInputLayout(descs, []byte(vertexShader.DXBC))
 }
 
 func (b *Backend) NewBuffer(typ driver.BufferBinding, size int) (driver.Buffer, error) {
+	return b.newBuffer(typ, size, nil, false)
+}
+
+func (b *Backend) NewImmutableBuffer(typ driver.BufferBinding, data []byte) (driver.Buffer, error) {
+	return b.newBuffer(typ, len(data), data, true)
+}
+
+func (b *Backend) newBuffer(typ driver.BufferBinding, size int, data []byte, immutable bool) (*Buffer, error) {
 	if typ&driver.BufferBindingUniforms != 0 {
 		if typ != driver.BufferBindingUniforms {
 			return nil, errors.New("uniform buffers cannot have other bindings")
@@ -350,59 +399,144 @@ func (b *Backend) NewBuffer(typ driver.BufferBinding, size int) (driver.Buffer, 
 		}
 	}
 	bind := convBufferBinding(typ)
-	buf, err := b.dev.CreateBuffer(&d3d11.BUFFER_DESC{
-		ByteWidth: uint32(size),
-		BindFlags: bind,
-	}, nil)
-	if err != nil {
-		return nil, err
+	var usage, miscFlags, cpuFlags uint32
+	if immutable {
+		usage = d3d11.USAGE_IMMUTABLE
 	}
-	return &Buffer{backend: b, buf: buf, bind: bind}, nil
-}
-
-func (b *Backend) NewImmutableBuffer(typ driver.BufferBinding, data []byte) (driver.Buffer, error) {
-	if typ&driver.BufferBindingUniforms != 0 {
-		if typ != driver.BufferBindingUniforms {
-			return nil, errors.New("uniform buffers cannot have other bindings")
-		}
-		if len(data)%16 != 0 {
-			return nil, fmt.Errorf("constant buffer size is %d, expected a multiple of 16", len(data))
-		}
+	if typ&driver.BufferBindingShaderStorageWrite != 0 {
+		cpuFlags = d3d11.CPU_ACCESS_READ
 	}
-	bind := convBufferBinding(typ)
+	if typ&(driver.BufferBindingShaderStorageRead|driver.BufferBindingShaderStorageWrite) != 0 {
+		miscFlags |= d3d11.RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS
+	}
 	buf, err := b.dev.CreateBuffer(&d3d11.BUFFER_DESC{
-		ByteWidth: uint32(len(data)),
-		Usage:     d3d11.USAGE_IMMUTABLE,
-		BindFlags: bind,
+		ByteWidth:      uint32(size),
+		Usage:          usage,
+		BindFlags:      bind,
+		CPUAccessFlags: cpuFlags,
+		MiscFlags:      miscFlags,
 	}, data)
 	if err != nil {
 		return nil, err
 	}
-	return &Buffer{backend: b, buf: buf, bind: bind, immutable: true}, nil
+	var (
+		resView *d3d11.ShaderResourceView
+		uaView  *d3d11.UnorderedAccessView
+	)
+	if typ&driver.BufferBindingShaderStorageWrite != 0 {
+		uaView, err = b.dev.CreateUnorderedAccessView(
+			(*d3d11.Resource)(unsafe.Pointer(buf)),
+			unsafe.Pointer(&d3d11.UNORDERED_ACCESS_VIEW_DESC_BUFFER{
+				UNORDERED_ACCESS_VIEW_DESC: d3d11.UNORDERED_ACCESS_VIEW_DESC{
+					Format:        d3d11.DXGI_FORMAT_R32_TYPELESS,
+					ViewDimension: d3d11.UAV_DIMENSION_BUFFER,
+				},
+				Buffer: d3d11.BUFFER_UAV{
+					FirstElement: 0,
+					NumElements:  uint32(size / 4),
+					Flags:        d3d11.BUFFER_UAV_FLAG_RAW,
+				},
+			}),
+		)
+		if err != nil {
+			d3d11.IUnknownRelease(unsafe.Pointer(buf), buf.Vtbl.Release)
+			return nil, err
+		}
+	} else if typ&driver.BufferBindingShaderStorageRead != 0 {
+		resView, err = b.dev.CreateShaderResourceView(
+			(*d3d11.Resource)(unsafe.Pointer(buf)),
+			unsafe.Pointer(&d3d11.SHADER_RESOURCE_VIEW_DESC_BUFFEREX{
+				SHADER_RESOURCE_VIEW_DESC: d3d11.SHADER_RESOURCE_VIEW_DESC{
+					Format:        d3d11.DXGI_FORMAT_R32_TYPELESS,
+					ViewDimension: d3d11.SRV_DIMENSION_BUFFEREX,
+				},
+				Buffer: d3d11.BUFFEREX_SRV{
+					FirstElement: 0,
+					NumElements:  uint32(size / 4),
+					Flags:        d3d11.BUFFEREX_SRV_FLAG_RAW,
+				},
+			}),
+		)
+		if err != nil {
+			d3d11.IUnknownRelease(unsafe.Pointer(buf), buf.Vtbl.Release)
+			return nil, err
+		}
+	}
+	return &Buffer{backend: b, buf: buf, bind: bind, size: size, resView: resView, uaView: uaView, immutable: immutable}, nil
 }
 
 func (b *Backend) NewComputeProgram(shader shader.Sources) (driver.Program, error) {
-	panic("not implemented")
-}
-
-func (b *Backend) NewProgram(vertexShader, fragmentShader shader.Sources) (driver.Program, error) {
-	vs, err := b.dev.CreateVertexShader([]byte(vertexShader.DXBC))
+	cs, err := b.dev.CreateComputeShader([]byte(shader.DXBC))
 	if err != nil {
 		return nil, err
 	}
-	ps, err := b.dev.CreatePixelShader([]byte(fragmentShader.DXBC))
+	return &Program{backend: b, shader: cs}, nil
+}
+
+func (b *Backend) NewPipeline(desc driver.PipelineDesc) (driver.Pipeline, error) {
+	vsh := desc.VertexShader.(*VertexShader)
+	fsh := desc.FragmentShader.(*FragmentShader)
+	blend, err := b.newBlendState(desc.BlendDesc)
 	if err != nil {
 		return nil, err
 	}
-	p := &Program{backend: b}
-	p.vert.shader = vs
-	p.frag.shader = ps
-	return p, nil
+	var layout *d3d11.InputLayout
+	if l := desc.VertexLayout; l.Stride > 0 {
+		var err error
+		layout, err = b.newInputLayout(vsh.src, l.Inputs)
+		if err != nil {
+			d3d11.IUnknownRelease(unsafe.Pointer(blend), blend.Vtbl.AddRef)
+			return nil, err
+		}
+	}
+
+	// Retain shaders.
+	vshRef := vsh.shader
+	fshRef := fsh.shader
+	d3d11.IUnknownAddRef(unsafe.Pointer(vshRef), vshRef.Vtbl.AddRef)
+	d3d11.IUnknownAddRef(unsafe.Pointer(fshRef), fshRef.Vtbl.AddRef)
+
+	return &Pipeline{
+		vert:   vshRef,
+		frag:   fshRef,
+		layout: layout,
+		stride: desc.VertexLayout.Stride,
+		blend:  blend,
+	}, nil
 }
 
-func (b *Backend) Clear(colr, colg, colb, cola float32) {
-	b.clearColor = [4]float32{colr, colg, colb, cola}
-	b.ctx.ClearRenderTargetView(b.fbo.renderTarget, &b.clearColor)
+func (b *Backend) newBlendState(desc driver.BlendDesc) (*d3d11.BlendState, error) {
+	var d3ddesc d3d11.BLEND_DESC
+	t0 := &d3ddesc.RenderTarget[0]
+	t0.RenderTargetWriteMask = d3d11.COLOR_WRITE_ENABLE_ALL
+	t0.BlendOp = d3d11.BLEND_OP_ADD
+	t0.BlendOpAlpha = d3d11.BLEND_OP_ADD
+	if desc.Enable {
+		t0.BlendEnable = 1
+	}
+	scol, salpha := toBlendFactor(desc.SrcFactor)
+	dcol, dalpha := toBlendFactor(desc.DstFactor)
+	t0.SrcBlend = scol
+	t0.SrcBlendAlpha = salpha
+	t0.DestBlend = dcol
+	t0.DestBlendAlpha = dalpha
+	return b.dev.CreateBlendState(&d3ddesc)
+}
+
+func (b *Backend) NewVertexShader(src shader.Sources) (driver.VertexShader, error) {
+	vs, err := b.dev.CreateVertexShader([]byte(src.DXBC))
+	if err != nil {
+		return nil, err
+	}
+	return &VertexShader{b, vs, src}, nil
+}
+
+func (b *Backend) NewFragmentShader(src shader.Sources) (driver.FragmentShader, error) {
+	fs, err := b.dev.CreatePixelShader([]byte(src.DXBC))
+	if err != nil {
+		return nil, err
+	}
+	return &FragmentShader{b, fs}, nil
 }
 
 func (b *Backend) Viewport(x, y, width, height int) {
@@ -428,14 +562,13 @@ func (b *Backend) DrawElements(mode driver.DrawMode, off, count int) {
 }
 
 func (b *Backend) prepareDraw(mode driver.DrawMode) {
-	if p := b.prog; p != nil {
-		b.ctx.VSSetShader(p.vert.shader)
-		b.ctx.PSSetShader(p.frag.shader)
-		if buf := p.vert.uniforms; buf != nil {
-			b.ctx.VSSetConstantBuffers(buf.buf)
-		}
-		if buf := p.frag.uniforms; buf != nil {
-			b.ctx.PSSetConstantBuffers(buf.buf)
+	if p := b.pipeline; p != nil {
+		b.ctx.VSSetShader(p.vert)
+		b.ctx.PSSetShader(p.frag)
+		b.ctx.IASetInputLayout(p.layout)
+		b.ctx.OMSetBlendState(p.blend, nil, 0xffffffff)
+		if b.vert.buffer != nil {
+			b.ctx.IASetVertexBuffers(b.vert.buffer.buf, uint32(p.stride), uint32(b.vert.offset))
 		}
 	}
 	var topology uint32
@@ -448,52 +581,22 @@ func (b *Backend) prepareDraw(mode driver.DrawMode) {
 		panic("unsupported draw mode")
 	}
 	b.ctx.IASetPrimitiveTopology(topology)
-
-	blendState, ok := b.blendStates[b.blendState]
-	if !ok {
-		var desc d3d11.BLEND_DESC
-		t0 := &desc.RenderTarget[0]
-		t0.RenderTargetWriteMask = d3d11.COLOR_WRITE_ENABLE_ALL
-		t0.BlendOp = d3d11.BLEND_OP_ADD
-		t0.BlendOpAlpha = d3d11.BLEND_OP_ADD
-		if b.blendState.enable {
-			t0.BlendEnable = 1
-		}
-		scol, salpha := toBlendFactor(b.blendState.sfactor)
-		dcol, dalpha := toBlendFactor(b.blendState.dfactor)
-		t0.SrcBlend = scol
-		t0.SrcBlendAlpha = salpha
-		t0.DestBlend = dcol
-		t0.DestBlendAlpha = dalpha
-		var err error
-		blendState, err = b.dev.CreateBlendState(&desc)
-		if err != nil {
-			panic(err)
-		}
-		b.blendStates[b.blendState] = blendState
-	}
-	b.ctx.OMSetBlendState(blendState, nil, 0xffffffff)
-}
-
-func (b *Backend) SetBlend(enable bool) {
-	b.blendState.enable = enable
-}
-
-func (b *Backend) BlendFunc(sfactor, dfactor driver.BlendFactor) {
-	b.blendState.sfactor = sfactor
-	b.blendState.dfactor = dfactor
 }
 
 func (b *Backend) BindImageTexture(unit int, tex driver.Texture, access driver.AccessBits, f driver.TextureFormat) {
-	panic("not implemented")
+	t := tex.(*Texture)
+	if access&driver.AccessWrite == 0 {
+		b.ctx.CSSetShaderResources(uint32(unit), t.resView)
+	} else {
+		b.ctx.CSSetUnorderedAccessViews(uint32(unit), t.uaView)
+	}
 }
 
-func (b *Backend) MemoryBarrier() {
-	panic("not implemented")
-}
+func (b *Backend) MemoryBarrier() {}
 
 func (b *Backend) DispatchCompute(x, y, z int) {
-	panic("not implemented")
+	b.ctx.CSSetShader(b.program.shader)
+	b.ctx.Dispatch(uint32(x), uint32(y), uint32(z))
 }
 
 func (t *Texture) Upload(offset, size image.Point, pixels []byte, stride int) {
@@ -513,16 +616,17 @@ func (t *Texture) Upload(offset, size image.Point, pixels []byte, stride int) {
 }
 
 func (t *Texture) Release() {
-	d3d11.IUnknownRelease(unsafe.Pointer(t.tex), t.tex.Vtbl.Release)
-	t.tex = nil
 	if t.sampler != nil {
 		d3d11.IUnknownRelease(unsafe.Pointer(t.sampler), t.sampler.Vtbl.Release)
-		t.sampler = nil
 	}
 	if t.resView != nil {
 		d3d11.IUnknownRelease(unsafe.Pointer(t.resView), t.resView.Vtbl.Release)
-		t.resView = nil
 	}
+	if t.uaView != nil {
+		d3d11.IUnknownRelease(unsafe.Pointer(t.uaView), t.uaView.Vtbl.Release)
+	}
+	d3d11.IUnknownRelease(unsafe.Pointer(t.tex), t.tex.Vtbl.Release)
+	*t = Texture{}
 }
 
 func (b *Backend) BindTexture(unit int, tex driver.Texture) {
@@ -531,51 +635,106 @@ func (b *Backend) BindTexture(unit int, tex driver.Texture) {
 	b.ctx.PSSetShaderResources(uint32(unit), t.resView)
 }
 
+func (b *Backend) BindPipeline(pipe driver.Pipeline) {
+	b.pipeline = pipe.(*Pipeline)
+}
+
 func (b *Backend) BindProgram(prog driver.Program) {
-	b.prog = prog.(*Program)
+	b.program = prog.(*Program)
 }
 
-func (p *Program) Release() {
-	d3d11.IUnknownRelease(unsafe.Pointer(p.vert.shader), p.vert.shader.Vtbl.Release)
-	d3d11.IUnknownRelease(unsafe.Pointer(p.frag.shader), p.frag.shader.Vtbl.Release)
-	p.vert.shader = nil
-	p.frag.shader = nil
+func (s *VertexShader) Release() {
+	d3d11.IUnknownRelease(unsafe.Pointer(s.shader), s.shader.Vtbl.Release)
+	*s = VertexShader{}
 }
 
-func (p *Program) SetStorageBuffer(binding int, buffer driver.Buffer) {
-	panic("not implemented")
+func (s *FragmentShader) Release() {
+	d3d11.IUnknownRelease(unsafe.Pointer(s.shader), s.shader.Vtbl.Release)
+	*s = FragmentShader{}
 }
 
-func (p *Program) SetVertexUniforms(buf driver.Buffer) {
-	p.vert.uniforms = buf.(*Buffer)
+func (s *Program) Release() {
+	d3d11.IUnknownRelease(unsafe.Pointer(s.shader), s.shader.Vtbl.Release)
+	*s = Program{}
 }
 
-func (p *Program) SetFragmentUniforms(buf driver.Buffer) {
-	p.frag.uniforms = buf.(*Buffer)
+func (p *Pipeline) Release() {
+	d3d11.IUnknownRelease(unsafe.Pointer(p.vert), p.vert.Vtbl.Release)
+	d3d11.IUnknownRelease(unsafe.Pointer(p.frag), p.frag.Vtbl.Release)
+	d3d11.IUnknownRelease(unsafe.Pointer(p.blend), p.blend.Vtbl.Release)
+	if l := p.layout; l != nil {
+		d3d11.IUnknownRelease(unsafe.Pointer(l), l.Vtbl.Release)
+	}
+	*p = Pipeline{}
 }
 
-func (b *Backend) BindVertexBuffer(buf driver.Buffer, stride, offset int) {
-	b.ctx.IASetVertexBuffers(buf.(*Buffer).buf, uint32(stride), uint32(offset))
+func (b *Backend) BindStorageBuffer(binding int, buffer driver.Buffer) {
+	buf := buffer.(*Buffer)
+	if buf.resView != nil {
+		b.ctx.CSSetShaderResources(uint32(binding), buf.resView)
+	} else {
+		b.ctx.CSSetUnorderedAccessViews(uint32(binding), buf.uaView)
+	}
+}
+
+func (b *Backend) BindVertexUniforms(buffer driver.Buffer) {
+	buf := buffer.(*Buffer)
+	b.ctx.VSSetConstantBuffers(buf.buf)
+}
+
+func (b *Backend) BindFragmentUniforms(buffer driver.Buffer) {
+	buf := buffer.(*Buffer)
+	b.ctx.PSSetConstantBuffers(buf.buf)
+}
+
+func (b *Backend) BindVertexBuffer(buf driver.Buffer, offset int) {
+	b.vert.buffer = buf.(*Buffer)
+	b.vert.offset = offset
 }
 
 func (b *Backend) BindIndexBuffer(buf driver.Buffer) {
 	b.ctx.IASetIndexBuffer(buf.(*Buffer).buf, d3d11.DXGI_FORMAT_R16_UINT, 0)
 }
 
-func (b *Buffer) Download(data []byte) error {
-	panic("not implemented")
+func (b *Buffer) Download(dst []byte) error {
+	res := (*d3d11.Resource)(unsafe.Pointer(b.buf))
+	resMap, err := b.backend.ctx.Map(res, 0, d3d11.MAP_READ, 0)
+	if err != nil {
+		return fmt.Errorf("d3d11: %v", err)
+	}
+	defer b.backend.ctx.Unmap(res, 0)
+	data := sliceOf(resMap.PData, len(dst))
+	copy(dst, data)
+	return nil
 }
 
 func (b *Buffer) Upload(data []byte) {
-	b.backend.ctx.UpdateSubresource((*d3d11.Resource)(unsafe.Pointer(b.buf)), nil, 0, 0, data)
+	var dst *d3d11.BOX
+	if len(data) < b.size {
+		dst = &d3d11.BOX{
+			Left:   0,
+			Right:  uint32(len(data)),
+			Top:    0,
+			Bottom: 1,
+			Front:  0,
+			Back:   1,
+		}
+	}
+	b.backend.ctx.UpdateSubresource((*d3d11.Resource)(unsafe.Pointer(b.buf)), dst, 0, 0, data)
 }
 
 func (b *Buffer) Release() {
+	if b.resView != nil {
+		d3d11.IUnknownRelease(unsafe.Pointer(b.resView), b.resView.Vtbl.Release)
+	}
+	if b.uaView != nil {
+		d3d11.IUnknownRelease(unsafe.Pointer(b.uaView), b.uaView.Vtbl.Release)
+	}
 	d3d11.IUnknownRelease(unsafe.Pointer(b.buf), b.buf.Vtbl.Release)
-	b.buf = nil
+	*b = Buffer{}
 }
 
-func (f *Framebuffer) ReadPixels(src image.Rectangle, pixels []byte) error {
+func (f *Framebuffer) ReadPixels(src image.Rectangle, pixels []byte, stride int) error {
 	if f.resource == nil {
 		return errors.New("framebuffer does not support ReadPixels")
 	}
@@ -618,7 +777,7 @@ func (f *Framebuffer) ReadPixels(src image.Rectangle, pixels []byte) error {
 		return fmt.Errorf("ReadPixels: %v", err)
 	}
 	defer f.ctx.Unmap(res, 0)
-	srcPitch := w * 4
+	srcPitch := stride
 	dstPitch := int(resMap.RowPitch)
 	mapSize := dstPitch * h
 	data := sliceOf(resMap.PData, mapSize)
@@ -630,12 +789,14 @@ func (f *Framebuffer) ReadPixels(src image.Rectangle, pixels []byte) error {
 	return nil
 }
 
-func (b *Backend) BindFramebuffer(fbo driver.Framebuffer) {
+func (b *Backend) BindFramebuffer(fbo driver.Framebuffer, d driver.LoadDesc) {
 	b.fbo = fbo.(*Framebuffer)
 	b.ctx.OMSetRenderTargets(b.fbo.renderTarget, nil)
-}
-
-func (f *Framebuffer) Invalidate() {
+	if d.Action == driver.LoadActionClear {
+		c := d.ClearColor
+		b.clearColor = [4]float32{c.R, c.G, c.B, c.A}
+		b.ctx.ClearRenderTargetView(b.fbo.renderTarget, &b.clearColor)
+	}
 }
 
 func (f *Framebuffer) Release() {
@@ -649,15 +810,6 @@ func (f *Framebuffer) Release() {
 }
 
 func (f *Framebuffer) ImplementsRenderTarget() {}
-
-func (b *Backend) BindInputLayout(layout driver.InputLayout) {
-	b.ctx.IASetInputLayout(layout.(*InputLayout).layout)
-}
-
-func (l *InputLayout) Release() {
-	d3d11.IUnknownRelease(unsafe.Pointer(l.layout), l.layout.Vtbl.Release)
-	l.layout = nil
-}
 
 func convBufferBinding(typ driver.BufferBinding) uint32 {
 	var bindings uint32
@@ -675,6 +827,11 @@ func convBufferBinding(typ driver.BufferBinding) uint32 {
 	}
 	if typ&driver.BufferBindingFramebuffer != 0 {
 		bindings |= d3d11.BIND_RENDER_TARGET
+	}
+	if typ&driver.BufferBindingShaderStorageWrite != 0 {
+		bindings |= d3d11.BIND_UNORDERED_ACCESS
+	} else if typ&driver.BufferBindingShaderStorageRead != 0 {
+		bindings |= d3d11.BIND_SHADER_RESOURCE
 	}
 	return bindings
 }

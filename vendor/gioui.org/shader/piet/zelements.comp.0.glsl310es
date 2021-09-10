@@ -250,7 +250,7 @@ layout(binding = 3, std430) coherent buffer StateBuf
 layout(binding = 1, std430) readonly buffer ConfigBuf
 {
     Config conf;
-} _2429;
+} _2441;
 
 shared uint sh_part_ix;
 shared State sh_state[32];
@@ -1028,8 +1028,11 @@ void main()
         StateRef param_9 = state_aggregate_ref(param_8);
         State param_10 = agg;
         State_write(param_9, param_10);
+    }
+    memoryBarrierBuffer();
+    if (gl_LocalInvocationID.x == 31u)
+    {
         uint flag = 1u;
-        memoryBarrierBuffer();
         if (part_ix == 0u)
         {
             uint param_11 = part_ix;
@@ -1109,11 +1112,13 @@ void main()
             StateRef param_32 = state_prefix_ref(param_31);
             State param_33 = inclusive_prefix;
             State_write(param_32, param_33);
-            memoryBarrierBuffer();
-            flag = 2u;
-            uint param_34 = part_ix;
-            _779.state[state_flag_index(param_34)] = flag;
         }
+    }
+    memoryBarrierBuffer();
+    if ((gl_LocalInvocationID.x == 31u) && (part_ix != 0u))
+    {
+        uint param_34 = part_ix;
+        _779.state[state_flag_index(param_34)] = 2u;
     }
     barrier();
     if (part_ix != 0u)
@@ -1176,8 +1181,8 @@ void main()
                 {
                     path_cubic.stroke = vec2(0.0);
                 }
-                path_out_ref = PathSegRef(_2429.conf.pathseg_alloc.offset + ((st.pathseg_count - 1u) * 52u));
-                param_45.offset = _2429.conf.pathseg_alloc.offset;
+                path_out_ref = PathSegRef(_2441.conf.pathseg_alloc.offset + ((st.pathseg_count - 1u) * 52u));
+                param_45.offset = _2441.conf.pathseg_alloc.offset;
                 PathSegRef param_46 = path_out_ref;
                 uint param_47 = fill_mode;
                 PathCubic param_48 = path_cubic;
@@ -1203,8 +1208,8 @@ void main()
                 {
                     path_cubic.stroke = vec2(0.0);
                 }
-                path_out_ref = PathSegRef(_2429.conf.pathseg_alloc.offset + ((st.pathseg_count - 1u) * 52u));
-                param_51.offset = _2429.conf.pathseg_alloc.offset;
+                path_out_ref = PathSegRef(_2441.conf.pathseg_alloc.offset + ((st.pathseg_count - 1u) * 52u));
+                param_51.offset = _2441.conf.pathseg_alloc.offset;
                 PathSegRef param_52 = path_out_ref;
                 uint param_53 = fill_mode;
                 PathCubic param_54 = path_cubic;
@@ -1230,8 +1235,8 @@ void main()
                 {
                     path_cubic.stroke = vec2(0.0);
                 }
-                path_out_ref = PathSegRef(_2429.conf.pathseg_alloc.offset + ((st.pathseg_count - 1u) * 52u));
-                param_57.offset = _2429.conf.pathseg_alloc.offset;
+                path_out_ref = PathSegRef(_2441.conf.pathseg_alloc.offset + ((st.pathseg_count - 1u) * 52u));
+                param_57.offset = _2441.conf.pathseg_alloc.offset;
                 PathSegRef param_58 = path_out_ref;
                 uint param_59 = fill_mode;
                 PathCubic param_60 = path_cubic;
@@ -1255,8 +1260,8 @@ void main()
                     anno_fill.bbox = st.bbox;
                     anno_fill.linewidth = 0.0;
                 }
-                out_ref = AnnotatedRef(_2429.conf.anno_alloc.offset + ((st.path_count - 1u) * 32u));
-                param_63.offset = _2429.conf.anno_alloc.offset;
+                out_ref = AnnotatedRef(_2441.conf.anno_alloc.offset + ((st.path_count - 1u) * 32u));
+                param_63.offset = _2441.conf.anno_alloc.offset;
                 AnnotatedRef param_64 = out_ref;
                 uint param_65 = fill_mode;
                 AnnoColor param_66 = anno_fill;
@@ -1281,8 +1286,8 @@ void main()
                     anno_img.bbox = st.bbox;
                     anno_img.linewidth = 0.0;
                 }
-                out_ref = AnnotatedRef(_2429.conf.anno_alloc.offset + ((st.path_count - 1u) * 32u));
-                param_69.offset = _2429.conf.anno_alloc.offset;
+                out_ref = AnnotatedRef(_2441.conf.anno_alloc.offset + ((st.path_count - 1u) * 32u));
+                param_69.offset = _2441.conf.anno_alloc.offset;
                 AnnotatedRef param_70 = out_ref;
                 uint param_71 = fill_mode;
                 AnnoImage param_72 = anno_img;
@@ -1304,8 +1309,8 @@ void main()
                 {
                     anno_fill.linewidth = 0.0;
                 }
-                out_ref = AnnotatedRef(_2429.conf.anno_alloc.offset + ((st.path_count - 1u) * 32u));
-                param_75.offset = _2429.conf.anno_alloc.offset;
+                out_ref = AnnotatedRef(_2441.conf.anno_alloc.offset + ((st.path_count - 1u) * 32u));
+                param_75.offset = _2441.conf.anno_alloc.offset;
                 AnnotatedRef param_76 = out_ref;
                 uint param_77 = fill_mode;
                 AnnoBeginClip param_78 = anno_begin_clip;
@@ -1317,8 +1322,8 @@ void main()
                 ElementRef param_79 = this_ref;
                 Clip end_clip = Element_EndClip_read(param_79);
                 AnnoEndClip anno_end_clip = AnnoEndClip(end_clip.bbox);
-                out_ref = AnnotatedRef(_2429.conf.anno_alloc.offset + ((st.path_count - 1u) * 32u));
-                param_80.offset = _2429.conf.anno_alloc.offset;
+                out_ref = AnnotatedRef(_2441.conf.anno_alloc.offset + ((st.path_count - 1u) * 32u));
+                param_80.offset = _2441.conf.anno_alloc.offset;
                 AnnotatedRef param_81 = out_ref;
                 AnnoEndClip param_82 = anno_end_clip;
                 Annotated_EndClip_write(param_80, param_81, param_82);
@@ -1327,8 +1332,8 @@ void main()
             case 6u:
             {
                 TransformSeg transform = TransformSeg(st.mat, st.translate);
-                TransformSegRef trans_ref = TransformSegRef(_2429.conf.trans_alloc.offset + ((st.trans_count - 1u) * 24u));
-                param_83.offset = _2429.conf.trans_alloc.offset;
+                TransformSegRef trans_ref = TransformSegRef(_2441.conf.trans_alloc.offset + ((st.trans_count - 1u) * 24u));
+                param_83.offset = _2441.conf.trans_alloc.offset;
                 TransformSegRef param_84 = trans_ref;
                 TransformSeg param_85 = transform;
                 TransformSeg_write(param_83, param_84, param_85);

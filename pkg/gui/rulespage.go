@@ -7,29 +7,30 @@ import (
 	"gioui.org/widget"
 	"gioui.org/widget/material"
 	"gioui.org/x/richtext"
+	"github.com/razzie/razgio"
 	"github.com/razzie/riddle-solver/pkg/riddle"
 )
 
 type RulesPage struct {
 	theme      *material.Theme
-	modal      ModalHandler
-	list       ListWithScrollbar
-	btns       ButtonBar
+	modal      razgio.ModalHandler
+	list       razgio.ListWithScrollbar
+	btns       razgio.ButtonBar
 	deleteIcon *widget.Icon
 	rules      []ruleItem
 	editFunc   func(*riddle.Rule)
 	saveFunc   func([]riddle.Rule)
 }
 
-func NewRulesPage(th *material.Theme, modal ModalHandler) *RulesPage {
+func NewRulesPage(th *material.Theme, modal razgio.ModalHandler) *RulesPage {
 	p := &RulesPage{
 		theme:      th,
 		modal:      modal,
-		list:       NewListWithScrollbar(),
-		btns:       NewButtonBar("Add rule", "Reset"),
-		deleteIcon: GetIcons().ActionDelete,
+		list:       razgio.NewListWithScrollbar(),
+		btns:       razgio.NewButtonBar("Add rule", "Reset"),
+		deleteIcon: razgio.GetIcons().ActionDelete,
 	}
-	p.btns.SetButtonIcon(0, GetIcons().ContentAdd)
+	p.btns.SetButtonIcon(0, razgio.GetIcons().ContentAdd)
 	return p
 }
 
@@ -234,7 +235,7 @@ func (rule *ruleItem) Layout(gtx C, p *RulesPage) D {
 		p.editRule(rule.Rule)
 	}
 
-	deleteBtn := IconAndTextButton(th, &rule.deleteBtn, p.deleteIcon, "")
+	deleteBtn := razgio.IconAndTextButton(th, &rule.deleteBtn, p.deleteIcon, "")
 	deleteBtn.Inset = layout.UniformInset(unit.Dp(1))
 	if rule.deleteBtn.Clicked() {
 		p.modal.ModalYesNo("Delete rule?", func() {

@@ -34,6 +34,7 @@ var (
 	_glDeleteQueries                       = LibGLESv2.NewProc("glDeleteQueries")
 	_glDeleteVertexArrays                  = LibGLESv2.NewProc("glDeleteVertexArrays")
 	_glCompileShader                       = LibGLESv2.NewProc("glCompileShader")
+	_glCopyTexSubImage2D                   = LibGLESv2.NewProc("glCopyTexSubImage2D")
 	_glGenBuffers                          = LibGLESv2.NewProc("glGenBuffers")
 	_glGenFramebuffers                     = LibGLESv2.NewProc("glGenFramebuffers")
 	_glGenVertexArrays                     = LibGLESv2.NewProc("glGenVertexArrays")
@@ -158,11 +159,12 @@ func (c *Functions) BlendEquation(mode Enum) {
 func (c *Functions) BlendFuncSeparate(srcRGB, dstRGB, srcA, dstA Enum) {
 	syscall.Syscall6(_glBlendFuncSeparate.Addr(), 4, uintptr(srcRGB), uintptr(dstRGB), uintptr(srcA), uintptr(dstA), 0, 0)
 }
-func (f *Functions) BlitFramebuffer(sx0, sy0, sx1, sy1, dx0, dy0, dx1, dy1 int, mask Enum, filter Enum) {
-	panic("not implemented")
-}
-func (c *Functions) BufferData(target Enum, size int, usage Enum) {
-	syscall.Syscall6(_glBufferData.Addr(), 4, uintptr(target), uintptr(size), 0, uintptr(usage), 0, 0)
+func (c *Functions) BufferData(target Enum, size int, usage Enum, data []byte) {
+	var p unsafe.Pointer
+	if len(data) > 0 {
+		p = unsafe.Pointer(&data[0])
+	}
+	syscall.Syscall6(_glBufferData.Addr(), 4, uintptr(target), uintptr(size), uintptr(p), uintptr(usage), 0, 0)
 }
 func (f *Functions) BufferSubData(target Enum, offset int, src []byte) {
 	if n := len(src); n > 0 {
@@ -186,6 +188,9 @@ func (c *Functions) ClearDepthf(d float32) {
 }
 func (c *Functions) CompileShader(s Shader) {
 	syscall.Syscall(_glCompileShader.Addr(), 1, uintptr(s.V), 0, 0)
+}
+func (f *Functions) CopyTexSubImage2D(target Enum, level, xoffset, yoffset, x, y, width, height int) {
+	syscall.Syscall9(_glCopyTexSubImage2D.Addr(), 8, uintptr(target), uintptr(level), uintptr(xoffset), uintptr(yoffset), uintptr(x), uintptr(y), uintptr(width), uintptr(height), 0)
 }
 func (c *Functions) CreateBuffer() Buffer {
 	var buf uintptr

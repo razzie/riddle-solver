@@ -3,16 +3,18 @@
 package shader
 
 type Sources struct {
-	Name      string
-	GLSL100ES string
-	GLSL300ES string
-	GLSL310ES string
-	GLSL130   string
-	GLSL150   string
-	DXBC      string
-	Uniforms  UniformsReflection
-	Inputs    []InputLocation
-	Textures  []TextureBinding
+	Name          string
+	GLSL100ES     string
+	GLSL300ES     string
+	GLSL310ES     string
+	GLSL130       string
+	GLSL150       string
+	DXBC          string
+	MetalLib      string
+	Uniforms      UniformsReflection
+	Inputs        []InputLocation
+	Textures      []TextureBinding
+	WorkgroupSize [3]int
 }
 
 type UniformsReflection struct {
@@ -50,13 +52,6 @@ type InputLocation struct {
 	Size int
 }
 
-// InputDesc describes a vertex attribute as laid out in a Buffer.
-type InputDesc struct {
-	Type DataType
-	Size int
-
-	Offset int
-}
 type DataType uint8
 
 type DepthFunc uint8

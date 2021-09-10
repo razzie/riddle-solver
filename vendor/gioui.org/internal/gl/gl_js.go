@@ -104,11 +104,15 @@ func (f *Functions) BlendEquation(mode Enum) {
 func (f *Functions) BlendFuncSeparate(srcRGB, dstRGB, srcA, dstA Enum) {
 	f.Ctx.Call("blendFunc", int(srcRGB), int(dstRGB), int(srcA), int(dstA))
 }
-func (f *Functions) BlitFramebuffer(sx0, sy0, sx1, sy1, dx0, dy0, dx1, dy1 int, mask Enum, filter Enum) {
-	panic("not implemented")
-}
-func (f *Functions) BufferData(target Enum, size int, usage Enum) {
-	f.Ctx.Call("bufferData", int(target), size, int(usage))
+func (f *Functions) BufferData(target Enum, size int, usage Enum, data []byte) {
+	if data == nil {
+		f.Ctx.Call("bufferData", int(target), size, int(usage))
+	} else {
+		if len(data) != size {
+			panic("size mismatch")
+		}
+		f.Ctx.Call("bufferData", int(target), f.byteArrayOf(data), int(usage))
+	}
 }
 func (f *Functions) BufferSubData(target Enum, offset int, src []byte) {
 	f.Ctx.Call("bufferSubData", int(target), offset, f.byteArrayOf(src))
@@ -127,6 +131,9 @@ func (f *Functions) ClearDepthf(d float32) {
 }
 func (f *Functions) CompileShader(s Shader) {
 	f.Ctx.Call("compileShader", js.Value(s))
+}
+func (f *Functions) CopyTexSubImage2D(target Enum, level, xoffset, yoffset, x, y, width, height int) {
+	f.Ctx.Call("copyTexSubImage2D", int(target), level, xoffset, yoffset, x, y, width, height)
 }
 func (f *Functions) CreateBuffer() Buffer {
 	return Buffer(f.Ctx.Call("createBuffer"))
@@ -255,6 +262,12 @@ func (f *Functions) GetBindingi(pname Enum, idx int) Object {
 	return Object(obj)
 }
 func (f *Functions) GetInteger(pname Enum) int {
+	if !f.isWebGL2 {
+		switch pname {
+		case PACK_ROW_LENGTH, UNPACK_ROW_LENGTH:
+			return 0 // PACK_ROW_LENGTH and UNPACK_ROW_LENGTH is only available on WebGL 2
+		}
+	}
 	return paramVal(f.Ctx.Call("getParameter", int(pname)))
 }
 func (f *Functions) GetFloat(pname Enum) float32 {

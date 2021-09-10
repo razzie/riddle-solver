@@ -4,25 +4,26 @@ import (
 	"fmt"
 
 	"gioui.org/widget/material"
+	"github.com/razzie/razgio"
 	"github.com/razzie/riddle-solver/pkg/riddle"
 )
 
 type ResultsPage struct {
 	theme     *material.Theme
-	modal     ModalHandler
-	scrollbar ListWithScrollbar
-	results   Tree
+	modal     razgio.ModalHandler
+	scrollbar razgio.ListWithScrollbar
+	results   razgio.Tree
 	setup     riddle.Setup
 	rules     []riddle.Rule
 	dirty     bool
 }
 
-func NewResultsPage(th *material.Theme, modal ModalHandler) *ResultsPage {
+func NewResultsPage(th *material.Theme, modal razgio.ModalHandler) *ResultsPage {
 	return &ResultsPage{
 		theme:     th,
 		modal:     modal,
-		scrollbar: NewListWithScrollbar(),
-		results:   NewTree(TreeLabel{Text: "Results"}),
+		scrollbar: razgio.NewListWithScrollbar(),
+		results:   razgio.NewTree(razgio.TreeLabel{Text: "Results"}),
 		dirty:     true,
 	}
 }
@@ -49,17 +50,17 @@ func (p *ResultsPage) Select() {
 	p.results.ClearChildren()
 
 	for itemType, values := range p.setup {
-		itemTypeNode := p.results.AddChild(TreeLabel{Text: itemType})
+		itemTypeNode := p.results.AddChild(razgio.TreeLabel{Text: itemType})
 		for _, val := range values {
 			item := riddle.Item(fmt.Sprintf("%s:%s", itemType, val))
-			valueNode := itemTypeNode.AddChild(TreeLabel{Text: val})
+			valueNode := itemTypeNode.AddChild(razgio.TreeLabel{Text: val})
 			for itemType, values := range solver.FindAssociatedItems(item) {
-				labelParts := make([]TreeLabel, 0, len(values)*2) // 1 + len(values) + (len(values)-1)
-				labelParts = append(labelParts, TreeLabel{Text: itemType + ": "})
+				labelParts := make([]razgio.TreeLabel, 0, len(values)*2) // 1 + len(values) + (len(values)-1)
+				labelParts = append(labelParts, razgio.TreeLabel{Text: itemType + ": "})
 				for i := 0; i < len(values); i++ {
-					labelParts = append(labelParts, TreeLabel{Text: values[i], Highlight: true})
+					labelParts = append(labelParts, razgio.TreeLabel{Text: values[i], Highlight: true})
 					if i < len(values)-1 {
-						labelParts = append(labelParts, TreeLabel{Text: ", "})
+						labelParts = append(labelParts, razgio.TreeLabel{Text: ", "})
 					}
 				}
 				valueNode.AddChild(labelParts...)

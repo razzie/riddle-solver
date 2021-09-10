@@ -8,30 +8,29 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"github.com/razzie/razgio"
 	"github.com/razzie/riddle-solver/pkg/riddle"
 )
 
-var _ Page = (*SetupPage)(nil)
-
 type SetupPage struct {
 	theme    *material.Theme
-	modal    ModalHandler
-	list     ListWithScrollbar
+	modal    razgio.ModalHandler
+	list     razgio.ListWithScrollbar
 	items    []setupItem
-	buttons  ButtonBar
+	buttons  razgio.ButtonBar
 	saveFunc func(riddle.Setup)
 	removeCh chan int
 }
 
-func NewSetupPage(th *material.Theme, modal ModalHandler) *SetupPage {
+func NewSetupPage(th *material.Theme, modal razgio.ModalHandler) *SetupPage {
 	p := &SetupPage{
 		theme:    th,
 		modal:    modal,
-		list:     NewListWithScrollbar(),
-		buttons:  NewButtonBar("Add item type", "Save / apply", "Reset"),
+		list:     razgio.NewListWithScrollbar(),
+		buttons:  razgio.NewButtonBar("Add item type", "Save / apply", "Reset"),
 		removeCh: make(chan int, 1),
 	}
-	p.buttons.SetButtonIcon(0, GetIcons().ContentAdd)
+	p.buttons.SetButtonIcon(0, razgio.GetIcons().ContentAdd)
 	p.Reset()
 	return p
 }
@@ -158,8 +157,8 @@ func (p *SetupPage) Reset() {
 
 type setupItem struct {
 	list       layout.List
-	itemType   TextField
-	values     TextField
+	itemType   razgio.TextField
+	values     razgio.TextField
 	delete     widget.Clickable
 	deleteIcon *widget.Icon
 	p          *SetupPage
@@ -171,13 +170,13 @@ func newSetupItem(p *SetupPage) setupItem {
 			Axis:      layout.Horizontal,
 			Alignment: layout.Middle,
 		},
-		itemType: TextField{
+		itemType: razgio.TextField{
 			Editor: widget.Editor{SingleLine: true},
 		},
-		values: TextField{
+		values: razgio.TextField{
 			Editor: widget.Editor{SingleLine: true},
 		},
-		deleteIcon: GetIcons().ActionDelete,
+		deleteIcon: razgio.GetIcons().ActionDelete,
 		p:          p,
 	}
 }
@@ -209,7 +208,7 @@ func (item *setupItem) Layout(gtx C, th *material.Theme, idx int) D {
 			} else if item.delete.Clicked() {
 				item.p.remove(idx)
 			}
-			btn := IconAndTextButton(th, &item.delete, item.deleteIcon, "")
+			btn := razgio.IconAndTextButton(th, &item.delete, item.deleteIcon, "")
 			btn.TextSize = th.TextSize.Scale(1.5)
 			btn.Inset = layout.UniformInset(unit.Dp(2))
 			return in.Layout(gtx, btn.Layout)
