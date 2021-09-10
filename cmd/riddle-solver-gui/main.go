@@ -29,7 +29,7 @@ func tryLoadRiddle() *riddle.Riddle {
 		}
 		return r
 	}
-	return riddle.NewEinsteinRiddle()
+	return nil
 }
 
 func main() {
