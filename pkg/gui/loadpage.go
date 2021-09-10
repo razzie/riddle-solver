@@ -1,7 +1,6 @@
 package gui
 
 import (
-	"io"
 	"path/filepath"
 
 	"gioui.org/layout"
@@ -9,8 +8,8 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
-	"gioui.org/x/explorer"
 	"gioui.org/x/richtext"
+	"github.com/gen2brain/dlgs"
 	"github.com/razzie/razgio"
 	"github.com/razzie/riddle-solver/pkg/riddle"
 )
@@ -90,20 +89,16 @@ func (p *LoadPage) SetRiddleSetter(setter func(*riddle.Riddle) error) {
 }
 
 func (p *LoadPage) loadFromExplorer() {
-	reader, err := explorer.ReadFile()
+	file, ok, err := dlgs.File("Open riddle", "*.json", false)
 	if err != nil {
 		p.modal.ModalMessage(err.Error())
 		return
 	}
-	defer reader.Close()
-
-	bytes, err := io.ReadAll(reader)
-	if err != nil {
-		p.modal.ModalMessage(err.Error())
+	if !ok {
 		return
 	}
 
-	r, err := riddle.LoadRiddle(bytes)
+	r, err := riddle.LoadRiddleFromFile(file)
 	if err != nil {
 		p.modal.ModalMessage(err.Error())
 		return

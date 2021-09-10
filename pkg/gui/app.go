@@ -11,6 +11,7 @@ import (
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/widget/material"
+	"github.com/gen2brain/dlgs"
 	"github.com/razzie/razgio"
 	"github.com/razzie/riddle-solver/pkg/riddle"
 )
@@ -129,7 +130,7 @@ func (app *App) SetRiddle(r *riddle.Riddle) error {
 func (app *App) loop(w *gioapp.Window) error {
 	defer func() {
 		if r := recover(); r != nil {
-			OSMessageBox(fmt.Sprint(r, "\n", string(debug.Stack())), "Error")
+			dlgs.Error("Error", fmt.Sprint(r, "\n", string(debug.Stack())))
 			os.Exit(1)
 		}
 	}()

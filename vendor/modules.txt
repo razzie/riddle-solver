@@ -49,11 +49,6 @@ gioui.org/shader/piet
 ## explicit
 gioui.org/x/component
 gioui.org/x/richtext
-# gioui.org/x/explorer v0.0.0-20210816192830-9ea938c228a0
-## explicit
-gioui.org/x/explorer
-# git.wow.st/gmp/jni v0.0.0-20200827154156-014cd5c7c4c0
-git.wow.st/gmp/jni
 # github.com/antlr/antlr4 v0.0.0-20191011202612-ad2bd05285ca
 github.com/antlr/antlr4/runtime/Go/antlr
 # github.com/antonmedv/expr v1.3.1
@@ -74,6 +69,11 @@ github.com/gdamore/encoding
 ## explicit
 github.com/gdamore/tcell
 github.com/gdamore/tcell/terminfo
+# github.com/gen2brain/dlgs v0.0.0-20210609125024-bf6c92aaa984
+## explicit
+github.com/gen2brain/dlgs
+# github.com/gopherjs/gopherjs v0.0.0-20181017120253-0766667cb4d1
+github.com/gopherjs/gopherjs/js
 # github.com/lucasb-eyer/go-colorful v1.0.2
 github.com/lucasb-eyer/go-colorful
 # github.com/mattn/go-runewidth v0.0.4

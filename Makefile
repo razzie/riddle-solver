@@ -8,7 +8,9 @@ GCFLAGS := -trimpath=$(CURDIR);$(GOROOT)/src
 
 all: gui tui
 
+ifeq ($(OS),Windows_NT)
 gui: LDFLAGS += -H=windowsgui
+endif
 gui:
 	$(GO) $(BUILD) -ldflags="$(LDFLAGS)" -gcflags=all="$(GCFLAGS)" ./cmd/riddle-solver-gui
 
