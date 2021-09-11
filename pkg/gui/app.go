@@ -7,6 +7,7 @@ import (
 	"runtime/debug"
 
 	gioapp "gioui.org/app"
+	"gioui.org/io/key"
 	"gioui.org/io/system"
 	"gioui.org/layout"
 	"gioui.org/op"
@@ -23,6 +24,7 @@ type (
 
 type App struct {
 	theme   *material.Theme
+	w       *gioapp.Window
 	pages   *razgio.PageHandler
 	setup   *SetupPage
 	addRule *AddRulePage
@@ -93,8 +95,8 @@ func NewApp(th *material.Theme, debug bool) *App {
 func (app *App) Run() error {
 	go func() {
 		defer os.Exit(0)
-		w := gioapp.NewWindow(gioapp.Title("Razzie's Riddle Solver"))
-		if err := app.loop(w); err != nil {
+		app.w = gioapp.NewWindow(gioapp.Title("Razzie's Riddle Solver"))
+		if err := app.loop(); err != nil {
 			log.Fatal(err)
 		}
 	}()
@@ -127,7 +129,7 @@ func (app *App) SetRiddle(r *riddle.Riddle) error {
 	return nil
 }
 
-func (app *App) loop(w *gioapp.Window) error {
+func (app *App) loop() error {
 	defer func() {
 		if r := recover(); r != nil {
 			dlgs.Error("Error", fmt.Sprint(r, "\n", string(debug.Stack())))
@@ -137,12 +139,18 @@ func (app *App) loop(w *gioapp.Window) error {
 
 	var ops op.Ops
 	for {
-		e := <-w.Events()
+		e := <-app.w.Events()
 		switch e := e.(type) {
 		case system.DestroyEvent:
 			return e.Err
+		case key.Event:
+			if e.Name == key.NameEscape {
+				app.pages.ModalYesNo("Exit program?", app.w.Close)
+			}
 		case system.FrameEvent:
 			gtx := layout.NewContext(&ops, e)
+			//key.InputOp{Tag: app, Hint: key.HintAny}.Add(gtx.Ops)
+			//key.FocusOp{Tag: app}.Add(gtx.Ops)
 			app.pages.Layout(gtx)
 			e.Frame(gtx.Ops)
 		}
