@@ -69,15 +69,15 @@ github.com/gdamore/encoding
 ## explicit
 github.com/gdamore/tcell
 github.com/gdamore/tcell/terminfo
+# github.com/gen2brain/dlgs v0.0.0-20210911090025-cbd38e821b98
+## explicit
+github.com/gen2brain/dlgs
 # github.com/gopherjs/gopherjs v0.0.0-20181017120253-0766667cb4d1
 github.com/gopherjs/gopherjs/js
 # github.com/lucasb-eyer/go-colorful v1.0.2
 github.com/lucasb-eyer/go-colorful
 # github.com/mattn/go-runewidth v0.0.4
 github.com/mattn/go-runewidth
-# github.com/razzie/dlgs v0.0.0-20210910202245-f927eda844b9
-## explicit
-github.com/razzie/dlgs
 # github.com/razzie/razgio v0.0.0-20210910000152-7dfc0f2528fb
 ## explicit
 github.com/razzie/razgio
